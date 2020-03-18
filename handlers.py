@@ -1,7 +1,7 @@
 """
 Здесь мы обрабатываем вызываемые функции
 """
-
+from datetime import datetime
 from telegram import (
     InlineQueryResultArticle,
     InputTextMessageContent,
@@ -9,12 +9,19 @@ from telegram import (
     InlineKeyboardMarkup,
     KeyboardButton,
 )
-
-import emoji
+from liquipediapy import dota
 from uuid import uuid4
-
-# import requests
+import emoji
+import os
+import requests
 import logging
+import json
+import pyjson5
+
+from functions import *
+
+""" Инициализация liquipediapy """
+dota_obj = dota("appname")
 
 """ Emoji """
 trophy = emoji.emojize(":trophy:")
@@ -27,7 +34,7 @@ party_popper = emoji.emojize(":party_popper:")
 reply_start_kb = [
     [
         InlineKeyboardButton(
-            "ТУРНИРЫ " + trophy + "", switch_inline_query_current_chat="find top 10"
+            "ТУРНИРЫ " + trophy + "", switch_inline_query_current_chat="current"
         )
     ],
     [
@@ -43,7 +50,7 @@ markup = InlineKeyboardMarkup(reply_start_kb)
 
 def start(update, context):
     logging.info("Вызвана функция старт")
-    reply_text = "Привет! Мы рады, что ты с нами! "+party_popper+""
+    reply_text = "Привет! Мы рады, что ты с нами! " + party_popper + ""
     update.message.reply_text(reply_text, reply_markup=markup)
 
 
@@ -54,38 +61,64 @@ def help(update, context):
     )
 
 
-def get_leagues(update, context):
-    pass
+def get_leagues():
+    # os.environ['STEAM_API_KEY']
+    # os.environ['TOKEN']
+    stratz_req = requests.get("https://api.stratz.com/api/v1/league")
+    stratz_data = json.loads(stratz_req.text)
+    stratz_data.sort(key=lambda z: z["endDateTime"])
+    return stratz_data
+
+
+def get_current_leagues():
+    dota_liquipedi = dota("appname")
+
+    leagues = []
+
+    major = dota_liquipedi.get_tournaments("Major")
+    minor = dota_liquipedi.get_tournaments("Minor")
+    premier = dota_liquipedi.get_tournaments("Premier")
+
+    major_json = pyjson5.loads(str(major))
+    minor_json = pyjson5.loads(str(minor))
+    premier_json = pyjson5.loads(str(premier))
+
+    for item in major_json:
+        if check_end_league(item["dates"]):
+            leagues.append(
+                (item["name"], item["icon"], item["prize_pool"], item["dates"])
+            )
+    for item in minor_json:
+        if check_end_league(item["dates"]):
+            leagues.append(
+                (item["name"], item["icon"], item["prize_pool"], item["dates"])
+            )
+    for item in premier_json:
+        if check_end_league(item["dates"]):
+            leagues.append(
+                (item["name"], item["icon"], item["prize_pool"], item["dates"])
+            )
+
+    return leagues
 
 
 def inlinequery(update, context):
-    """ ЗДЕСЬ НАХОДИТСЯ ШАБЛОННЫЙ КОД, ЕГО НУЖНО ЗАМЕНИТЬ """
     query = update.inline_query.query
-    result = [
-        InlineQueryResultArticle(
-            id=uuid4(),
-            title="The International 2019",
-            description="Турнир 19 года",
-            # url = 'https://i1.pngguru.com/preview/835/152/984/marei-icon-theme-dota-2-logo.jpg',
-            thumb_url="https://gamewelcome.ru/upload/par/kanobu/parsing/images/7a8e1d6f-bb2e-4e58-b446-0c7a04225004.jpg",
-            input_message_content=InputTextMessageContent("OK, нужно доработать"),
-        ),
-        InlineQueryResultArticle(
-            id=uuid4(),
-            title="ESL One",
-            description="Тут описание",
-            # url = 'https://i1.pngguru.com/preview/835/152/984/marei-icon-theme-dota-2-logo.jpg',
-            thumb_url="https://jpimg.com.br/uploads/2018/06/esl-one-belo-horizonte-1024x525.png",
-            input_message_content=InputTextMessageContent("OK, нужно доработать"),
-        ),
-        InlineQueryResultArticle(
-            id=uuid4(),
-            title="The International",
-            description="Описание",
-            # url = 'https://i1.pngguru.com/preview/835/152/984/marei-icon-theme-dota-2-logo.jpg',
-            thumb_url="http://www.dota2.com/international/overview/",
-            input_message_content=InputTextMessageContent("OK, нужно доработать"),
-        ),
-    ]
-
-    update.inline_query.answer(result)
+    if query == "current":
+        result = []
+        current_leagues = get_current_leagues()
+        for item in current_leagues:
+            result.append(
+                InlineQueryResultArticle(
+                    id=uuid4(),
+                    title=item[0],
+                    description= f"Period: {item[3]}, prize: ${item[2]}",
+                    thumb_url=item[1],
+                    input_message_content=InputTextMessageContent(
+                        "OK, нужно доработать"
+                    ),
+                )
+            )
+            update.inline_query.answer(result)
+    else:
+        pass
