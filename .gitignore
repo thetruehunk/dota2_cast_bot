@@ -1,0 +1,8 @@
+*.log
+settings.py
+env/
+__pycache__/
+.vscode/
+downloads/
+images/
+
