@@ -6,7 +6,6 @@ import pyjson5
 import requests
 
 
-
 def get_leagues():
     # os.environ['STEAM_API_KEY']
     # os.environ['TOKEN']
@@ -29,7 +28,7 @@ def get_current_leagues():
                     (item["name"], item["icon"], item["prize_pool"], item["dates"])
                 )
     except AttributeError:
-       logging.warning("Not found data in API for Major")
+        logging.warning("Not found data in API for Major")
     try:
         minor = dota_liquipedi.get_tournaments("Minor")
         minor_json = pyjson5.loads(str(minor))
@@ -89,3 +88,15 @@ def check_end_league(period):
         logging.exception("не хватает данных")
     except ValueError:
         logging.exception("это неправильный формат периода")
+
+
+def get_games_current_league(league):
+    league_game = []
+    dota_liquipedi = dota("appname")
+    games = dota_liquipedi.get_upcoming_and_ongoing_games()
+    games_json = pyjson5.loads(str(games).replace("None", "'None'"))
+    for item in games_json:
+        if item["tournament"] == league:
+            league_game.append(item)
+    print(league_game)
+    return league_game

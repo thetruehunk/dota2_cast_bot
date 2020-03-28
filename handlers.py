@@ -11,7 +11,7 @@ from telegram import (
 )
 
 from uuid import uuid4
-from functions import get_current_leagues
+from functions import get_current_leagues, get_games_current_league
 import emoji
 import logging
 
@@ -54,6 +54,12 @@ def help(update, context):
     )
 
 
+def get_tournament_info(update, context):
+    message = update.message.text
+    print(message.split("по ")[1])
+    update.message.reply_text(get_games_current_league(message.split(" '")[1]))
+
+
 def inlinequery(update, context):
     query = update.inline_query.query
     if query == "current":
@@ -62,12 +68,12 @@ def inlinequery(update, context):
         for item in current_leagues:
             result.append(
                 InlineQueryResultArticle(
-                    id = uuid4(),
-                    title = item[0], # сделать strip
-                    description = f"Period: {item[3]}, prize: ${item[2]}",
-                    thumb_url = item[1],
-                    input_message_content = InputTextMessageContent(
-                        "OK, нужно доработать"
+                    id=uuid4(),
+                    title=item[0].strip(),
+                    description=f"Period: {item[3]}, prize: ${item[2]}",
+                    thumb_url=item[1],
+                    input_message_content=InputTextMessageContent(
+                        f"OK, ищу информацию по '{item[0].strip()}'"
                     ),
                 )
             )
