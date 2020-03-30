@@ -7,8 +7,10 @@ from telegram.ext import (
     Dispatcher,
     CallbackQueryHandler,
     CommandHandler,
+    MessageHandler,
+    Filters,
     InlineQueryHandler,
-    )
+)
 
 import logging
 from handlers import *
@@ -23,20 +25,22 @@ logging.basicConfig(
 
 def main():
     # Создаем бота
-    bot = Updater(TOKEN, use_context = True, request_kwargs = PROXY)
-    
+    bot = Updater(TOKEN, use_context=True, request_kwargs=PROXY)
+
     # Создаем диспетчер
     dp = bot.dispatcher
-    
+
     # Делаем запись в лог
-    logging.info('bot запускается')
+    logging.info("bot запускается")
 
     # Создаем обработчики
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("help", help))
+    dp.add_handler(
+        MessageHandler(Filters.regex("OK, ищу информацию по (.*)"), get_tournament_info)
+    )
     dp.add_handler(CallbackQueryHandler(help, "help"))
     dp.add_handler(InlineQueryHandler(inlinequery))
-
 
     # Запускаем бота
     bot.start_polling()

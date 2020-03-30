@@ -9,19 +9,12 @@ from telegram import (
     InlineKeyboardMarkup,
     KeyboardButton,
 )
-from liquipediapy import dota
+
 from uuid import uuid4
+from functions import get_current_leagues, get_games_current_league
 import emoji
-import os
-import requests
 import logging
-import json
-import pyjson5
 
-from functions import *
-
-""" Инициализация liquipediapy """
-dota_obj = dota("appname")
 
 """ Emoji """
 trophy = emoji.emojize(":trophy:")
@@ -61,45 +54,10 @@ def help(update, context):
     )
 
 
-def get_leagues():
-    # os.environ['STEAM_API_KEY']
-    # os.environ['TOKEN']
-    stratz_req = requests.get("https://api.stratz.com/api/v1/league")
-    stratz_data = json.loads(stratz_req.text)
-    stratz_data.sort(key=lambda z: z["endDateTime"])
-    return stratz_data
-
-
-def get_current_leagues():
-    dota_liquipedi = dota("appname")
-
-    leagues = []
-
-    major = dota_liquipedi.get_tournaments("Major")
-    minor = dota_liquipedi.get_tournaments("Minor")
-    premier = dota_liquipedi.get_tournaments("Premier")
-
-    major_json = pyjson5.loads(str(major))
-    minor_json = pyjson5.loads(str(minor))
-    premier_json = pyjson5.loads(str(premier))
-
-    for item in major_json:
-        if check_end_league(item["dates"]):
-            leagues.append(
-                (item["name"], item["icon"], item["prize_pool"], item["dates"])
-            )
-    for item in minor_json:
-        if check_end_league(item["dates"]):
-            leagues.append(
-                (item["name"], item["icon"], item["prize_pool"], item["dates"])
-            )
-    for item in premier_json:
-        if check_end_league(item["dates"]):
-            leagues.append(
-                (item["name"], item["icon"], item["prize_pool"], item["dates"])
-            )
-
-    return leagues
+def get_tournament_info(update, context):
+    message = update.message.text
+    print(message.split("по ")[1])
+    update.message.reply_text(get_games_current_league(message.split(" '")[1]))
 
 def leagues_search(query):
     leagues_list = get_current_leagues()
@@ -174,11 +132,11 @@ def inlinequery(update, context):
             result.append(
                 InlineQueryResultArticle(
                     id=uuid4(),
-                    title=item[0],
-                    description= f"Period: {item[3]}, prize: ${item[2]}",
+                    title=item[0].strip(),
+                    description=f"Period: {item[3]}, prize: ${item[2]}",
                     thumb_url=item[1],
                     input_message_content=InputTextMessageContent(
-                        "OK, нужно доработать"
+                        f"OK, ищу информацию по '{item[0].strip()}'"
                     ),
                 )
             )
@@ -200,16 +158,3 @@ def inlinequery(update, context):
                 )
             )
         update.inline_query.answer(result)
-            
-
-        
-
-        
-        
-
-
-        
-
-
-
-
