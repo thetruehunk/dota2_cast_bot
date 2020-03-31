@@ -20,6 +20,7 @@ logging.basicConfig(
     filename="bot.log",
 )
 
+subscribers = set()
 
 def main():
     # Создаем бота
@@ -27,6 +28,8 @@ def main():
     
     # Создаем диспетчер
     dp = bot.dispatcher
+    
+    bot.job_queue.run_repeating(send_updates, interval=5)
     
     # Делаем запись в лог
     logging.info('bot запускается')
@@ -36,8 +39,9 @@ def main():
     dp.add_handler(CommandHandler("help", help))
     dp.add_handler(CallbackQueryHandler(help, "help"))
     dp.add_handler(InlineQueryHandler(inlinequery))
-
-
+    dp.add_handler(CommandHandler("subscribe", subscribe))
+    dp.add_handler(CommandHandler("unsubscribe", unsubscribe))
+    
     # Запускаем бота
     bot.start_polling()
     bot.idle()
