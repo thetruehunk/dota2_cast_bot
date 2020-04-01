@@ -9,6 +9,7 @@ from telegram.ext import (
     CommandHandler,
     InlineQueryHandler,
     )
+from telegram.ext import messagequeue as mq
 
 import logging
 from handlers import *
@@ -25,11 +26,14 @@ subscribers = set()
 def main():
     # Создаем бота
     bot = Updater(TOKEN, use_context = True, request_kwargs = PROXY)
-    
+    bot.bot._msg_queue = mq.MessageQueue()
+    bot.bot._is_messages_queued_default = True
+
+
     # Создаем диспетчер
     dp = bot.dispatcher
     
-    bot.job_queue.run_repeating(send_updates, interval=5)
+    bot.job_queue.run_repeating(send_updates, 5)
     
     # Делаем запись в лог
     logging.info('bot запускается')
@@ -41,6 +45,7 @@ def main():
     dp.add_handler(InlineQueryHandler(inlinequery))
     dp.add_handler(CommandHandler("subscribe", subscribe))
     dp.add_handler(CommandHandler("unsubscribe", unsubscribe))
+    dp.add_handler(CommandHandler("alarm", set_alarm, pass_args=True, pass_job_queue=True))
     
     # Запускаем бота
     bot.start_polling()

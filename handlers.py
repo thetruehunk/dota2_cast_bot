@@ -8,22 +8,14 @@ from telegram import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     KeyboardButton,
-    ParseMode,
 )
-from liquipediapy import dota
+from telegram.ext import messagequeue as mq
+
 from uuid import uuid4
+from functions import get_current_leagues, get_games_current_league
 import emoji
-import os
-import requests
 import logging
-import json
-import pyjson5
-
-from functions import *
 from bot import subscribers
-
-""" Инициализация liquipediapy """
-dota_obj = dota("appname")
 
 """ Emoji """
 trophy = emoji.emojize(":trophy:")
@@ -63,45 +55,10 @@ def help(update, context):
     )
 
 
-def get_leagues():
-    # os.environ['STEAM_API_KEY']
-    # os.environ['TOKEN']
-    stratz_req = requests.get("https://api.stratz.com/api/v1/league")
-    stratz_data = json.loads(stratz_req.text)
-    stratz_data.sort(key=lambda z: z["endDateTime"])
-    return stratz_data
-
-
-def get_current_leagues():
-    dota_liquipedi = dota("appname")
-
-    leagues = []
-
-    major = dota_liquipedi.get_tournaments("Major")
-    minor = dota_liquipedi.get_tournaments("Minor")
-    premier = dota_liquipedi.get_tournaments("Premier")
-
-    major_json = pyjson5.loads(str(major))
-    minor_json = pyjson5.loads(str(minor))
-    premier_json = pyjson5.loads(str(premier))
-
-    for item in major_json:
-        if check_end_league(item["dates"]):
-            leagues.append(
-                (item["name"], item["icon"], item["prize_pool"], item["dates"])
-            )
-    for item in minor_json:
-        if check_end_league(item["dates"]):
-            leagues.append(
-                (item["name"], item["icon"], item["prize_pool"], item["dates"])
-            )
-    for item in premier_json:
-        if check_end_league(item["dates"]):
-            leagues.append(
-                (item["name"], item["icon"], item["prize_pool"], item["dates"])
-            )
-
-    return leagues
+def get_tournament_info(update, context):
+    message = update.message.text
+    print(message.split("по ")[1])
+    update.message.reply_text(get_games_current_league(message.split(" '")[1]))
 
 def leagues_search(query):
     leagues_list = get_current_leagues()
@@ -111,7 +68,61 @@ def leagues_search(query):
             result.append(league)
     return result
         
- 
+
+    
+"""
+#список всех турниров
+def get_tournaments(tournamentType=None):
+		tournaments = []
+		if tournamentType is None:
+			page_val = 'Portal:Tournaments'
+		else:
+			page_val = tournamentType.capitalize()+'_Tournaments'				
+		soup,__ = self.liquipedia.parse(page_val)
+		div_rows = soup.find_all('div',class_='divRow')
+		for row in div_rows:
+			tournament = {}
+
+			values = row.find('div',class_="Tournament").get_text().split('\n')
+			tournament['tier'] = re.sub('\W+',' ',values[0]).strip()
+			tournament['name'] = values[1]
+
+			try:
+				tournament['icon'] = self.__image_base_url+row.find('div',class_="Tournament").find('img').get('src')
+			except AttributeError:
+				pass	
+
+			tournament['dates'] = row.find('div',class_="Date").get_text()
+
+			try:
+				tournament['prize_pool'] = int(row.find('div',class_="Prize").get_text().rstrip().replace('$','').replace(',',''))
+			except (AttributeError,ValueError):
+				tournament['prize_pool'] = 0
+
+			tournament['teams'] = re.sub('[A-Za-z]','',row.find('div',class_="PlayerNumber").get_text()).rstrip()	
+			location_list= unicodedata.normalize("NFKD",row.find('div',class_="Location").get_text().rstrip()).split(',')	
+			tournament['host_location'] = location_list[0]
+
+			try:
+				tournament['event_location'] = location_list[1]
+			except IndexError:
+				pass	
+		
+			if len(row) < 15:
+				links_a = row.find('div',class_="SecondPlace").find_all('a')
+				tournament['links'] = []
+				for link in links_a:
+					link_list = link.get('href').split('.')
+					site_name = link_list[-2].replace('https://','')
+					tournament['links'].append({site_name:link.get('href')})
+			else:
+				tournament['winner'] = 	unicodedata.normalize("NFKD",row.find('div',class_="FirstPlace").get_text().rstrip())	
+				tournament['runner_up'] = 	unicodedata.normalize("NFKD",row.find('div',class_="SecondPlace").get_text().rstrip())	
+
+			tournaments.append(tournament)
+
+		return tournaments
+"""
 
 def inlinequery(update, context):
     query = update.inline_query.query
@@ -122,11 +133,11 @@ def inlinequery(update, context):
             result.append(
                 InlineQueryResultArticle(
                     id=uuid4(),
-                    title=item[0],
-                    description= f"Period: {item[3]}, prize: ${item[2]}",
+                    title=item[0].strip(),
+                    description=f"Period: {item[3]}, prize: ${item[2]}",
                     thumb_url=item[1],
                     input_message_content=InputTextMessageContent(
-                        "OK, нужно доработать"
+                        f"OK, ищу информацию по '{item[0].strip()}'"
                     ),
                 )
             )
@@ -148,11 +159,12 @@ def inlinequery(update, context):
                 )
             )
         update.inline_query.answer(result)
-            
+
 def subscribe(update, context):
     subscribers.add(update.message.chat_id)
     update.message.reply_text("Вы подписались")
     print(subscribers)
+
 
 def send_updates(context, job):
     for chat_id in subscribers:
@@ -165,12 +177,12 @@ def unsubscribe(update, context):
     else:
         update.message.reply_text('Вы не подписаны на уведомления, наберите /subscribe чтобы подписаться')
 
-        
-        
+def set_alarm(update, context):
+    try:
+        seconds = abs(int(context.args[0]))
+        context.job_queue.run_once(alarm, seconds, context=update.message.chat_id)
+    except (IndexError, ValueError):
+        update.message.reply_text("Введите число секунд после команды /alarm")
 
-
-        
-
-
-
-
+def alarm(context):
+    context.bot.send_message(chat_id=context.job.context, text="Сработал будильник!")

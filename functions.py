@@ -1,5 +1,57 @@
+  
 from datetime import datetime
+from liquipediapy import dota
+import json
 import logging
+import pyjson5
+import requests
+
+
+def get_leagues():
+    # os.environ['STEAM_API_KEY']
+    # os.environ['TOKEN']
+    stratz_req = requests.get("https://api.stratz.com/api/v1/league")
+    stratz_data = json.loads(stratz_req.text)
+    stratz_data.sort(key=lambda z: z["endDateTime"])
+    return stratz_data
+
+
+def get_current_leagues():
+    dota_liquipedi = dota("appname")
+
+    leagues = []
+    try:
+        major = dota_liquipedi.get_tournaments("Major")
+        major_json = pyjson5.loads(str(major))
+        for item in major_json:
+            if check_end_league(item["dates"]):
+                leagues.append(
+                    (item["name"], item["icon"], item["prize_pool"], item["dates"])
+                )
+    except AttributeError:
+        logging.warning("Not found data in API for Major")
+    try:
+        minor = dota_liquipedi.get_tournaments("Minor")
+        minor_json = pyjson5.loads(str(minor))
+        for item in minor_json:
+            if check_end_league(item["dates"]):
+                leagues.append(
+                    (item["name"], item["icon"], item["prize_pool"], item["dates"])
+                )
+    except AttributeError:
+        logging.warning("Not found data in API for Minor")
+    try:
+        premier = dota_liquipedi.get_tournaments("Premier")
+        premier_json = pyjson5.loads(str(premier))
+        for item in premier_json:
+            if check_end_league(item["dates"]):
+                leagues.append(
+                    (item["name"], item["icon"], item["prize_pool"], item["dates"])
+                )
+    except AttributeError:
+        logging.warning("Not found data in API for Premier")
+
+    return leagues
 
 
 def check_end_league(period):
@@ -37,3 +89,15 @@ def check_end_league(period):
         logging.exception("не хватает данных")
     except ValueError:
         logging.exception("это неправильный формат периода")
+
+
+def get_games_current_league(league):
+    league_game = []
+    dota_liquipedi = dota("appname")
+    games = dota_liquipedi.get_upcoming_and_ongoing_games()
+    games_json = pyjson5.loads(str(games).replace("None", "'None'"))
+    for item in games_json:
+        if item["tournament"] == league:
+            league_game.append(item)
+    print(league_game)
+    return league_game
