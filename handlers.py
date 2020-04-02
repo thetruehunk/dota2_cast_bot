@@ -162,7 +162,7 @@ def inlinequery(update, context):
 
 def subscribe(update, context):
     subscribers.add(update.message.chat_id)
-    update.message.reply_text("Вы подписались")
+    update.message.reply_text("Вы подписались") #переделать, чтобы подписаться на конкретный турнир/игру
     print(subscribers)
 
 

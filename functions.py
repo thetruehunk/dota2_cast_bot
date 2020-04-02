@@ -101,3 +101,4 @@ def get_games_current_league(league):
             league_game.append(item)
     print(league_game)
     return league_game
+
