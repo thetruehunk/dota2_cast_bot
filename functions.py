@@ -5,6 +5,8 @@ import logging
 import pyjson5
 import requests
 
+from data_model import *
+
 
 def get_leagues():
     # os.environ['STEAM_API_KEY']
@@ -51,6 +53,23 @@ def get_current_leagues():
         logging.warning("Not found data in API for Premier")
 
     return leagues
+
+
+def get_league_id(league):
+    response = requests.get(
+        "https://api.opendota.com/api/explorer/?sql=select leagueid from leagues where name = "
+        + "'"
+        + league.replace(
+            "#", "%232"
+        )  # мерзкая решетка в названии не отрабатывает в SQL запросе
+        + "'"
+    )
+    league_id = response.json()
+    if league_id:
+        if league_id["rows"]:
+            return league_id["rows"][0]["leagueid"]
+    else:
+        return None
 
 
 def check_end_league(period):
@@ -100,3 +119,73 @@ def get_games_current_league(league):
             league_game.append(item)
     print(league_game)
     return league_game
+
+
+def sync_current_leagues():
+    dota_liquipedi = dota("appname")
+    mapper(League, leagues_table)  # non_primary=True
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    try:
+        major = dota_liquipedi.get_tournaments("Major")
+        major_json = pyjson5.loads(str(major))
+        for item in major_json:
+            if check_end_league(item["dates"]):
+                my_data = League(
+                    (get_league_id(item["name"].strip())),
+                    item["tier"],
+                    item["name"],
+                    item["icon"],
+                    item["dates"],
+                    item["prize_pool"],
+                    item["teams"],
+                    item["host_location"],
+                    item["event_location"],
+                    # item["links"],
+                )
+            session.add(my_data)
+            session.commit()
+    except AttributeError:
+        logging.warning("Not found data in API for Major")
+    try:
+        minor = dota_liquipedi.get_tournaments("Minor")
+        minor_json = pyjson5.loads(str(minor))
+        for item in minor_json:
+            if check_end_league(item["dates"]):
+                my_data = League(
+                    (get_league_id(item["name"].strip())),
+                    item["tier"],
+                    item["name"],
+                    item["icon"],
+                    item["dates"],
+                    item["prize_pool"],
+                    item["teams"],
+                    item["host_location"],
+                    item["event_location"],
+                    # item["links"],
+                )
+            session.add(my_data)
+            session.commit()
+    except AttributeError:
+        logging.warning("Not found data in API for Minor")
+    try:
+        premier = dota_liquipedi.get_tournaments("Premier")
+        premier_json = pyjson5.loads(str(premier))
+        for item in premier_json:
+            if check_end_league(item["dates"]):
+                my_data = League(
+                    (get_league_id(item["name"].strip())),
+                    item["tier"],
+                    item["name"],
+                    item["icon"],
+                    item["dates"],
+                    item["prize_pool"],
+                    item["teams"],
+                    item["host_location"],
+                    item["event_location"],
+                    # item["links"],
+                )
+            session.add(my_data)
+            session.commit()
+    except AttributeError:
+        logging.warning("Not found data in API for Premier")
