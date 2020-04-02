@@ -60,6 +60,7 @@ def get_tournament_info(update, context):
     print(message.split("по ")[1])
     update.message.reply_text(get_games_current_league(message.split(" '")[1]))
 
+
 def leagues_search(query):
     leagues_list = get_current_leagues()
     result = []
@@ -67,9 +68,8 @@ def leagues_search(query):
         if query in league["name"]:
             result.append(league)
     return result
-        
 
-    
+
 """
 #список всех турниров
 def get_tournaments(tournamentType=None):
@@ -124,6 +124,7 @@ def get_tournaments(tournamentType=None):
 		return tournaments
 """
 
+
 def inlinequery(update, context):
     query = update.inline_query.query
     if query == "current":
@@ -144,14 +145,14 @@ def inlinequery(update, context):
         update.inline_query.answer(result)
     elif query == "search":
         result = []
-        user_text = (update.message.text.split()[1:].strip())
+        user_text = update.message.text.split()[1:].strip()
         result_search = leagues_search(user_text)
         for item in result_search:
             result.append(
                 InlineQueryResultArticle(
                     id=uuid4(),
                     title=item[0],
-                    description= f"Period: {item[3]}, prize: ${item[2]}",
+                    description=f"Period: {item[3]}, prize: ${item[2]}",
                     thumb_url=item[1],
                     input_message_content=InputTextMessageContent(
                         "OK, нужно доработать"
@@ -159,6 +160,7 @@ def inlinequery(update, context):
                 )
             )
         update.inline_query.answer(result)
+
 
 def subscribe(update, context):
     subscribers.add(update.message.chat_id)
@@ -168,14 +170,21 @@ def subscribe(update, context):
 
 def send_updates(context, job):
     for chat_id in subscribers:
-        context.bot.sendMessage(chat_id=chat_id, text='Тут будет инфа по турниру на который подписался пользователь')
+        context.bot.sendMessage(
+            chat_id=chat_id,
+            text="Тут будет инфа по турниру на который подписался пользователь",
+        )
+
 
 def unsubscribe(update, context):
     if update.message.chat_id in subscribers:
         subscribers.remove(update.message.chat_id)
         update.message.reply_text("Вы отпиcались от уведомлений")
     else:
-        update.message.reply_text('Вы не подписаны на уведомления, наберите /subscribe чтобы подписаться')
+        update.message.reply_text(
+            "Вы не подписаны на уведомления, наберите /subscribe чтобы подписаться"
+        )
+
 
 def set_alarm(update, context):
     try:
@@ -183,6 +192,7 @@ def set_alarm(update, context):
         context.job_queue.run_once(alarm, seconds, context=update.message.chat_id)
     except (IndexError, ValueError):
         update.message.reply_text("Введите число секунд после команды /alarm")
+
 
 def alarm(context):
     context.bot.send_message(chat_id=context.job.context, text="Сработал будильник!")
