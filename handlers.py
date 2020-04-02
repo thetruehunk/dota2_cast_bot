@@ -9,12 +9,13 @@ from telegram import (
     InlineKeyboardMarkup,
     KeyboardButton,
 )
+from telegram.ext import messagequeue as mq
 
 from uuid import uuid4
 from functions import get_current_leagues, get_games_current_league
 import emoji
 import logging
-
+from bot import subscribers
 
 """ Emoji """
 trophy = emoji.emojize(":trophy:")
@@ -158,3 +159,30 @@ def inlinequery(update, context):
                 )
             )
         update.inline_query.answer(result)
+
+def subscribe(update, context):
+    subscribers.add(update.message.chat_id)
+    update.message.reply_text("Вы подписались")
+    print(subscribers)
+
+
+def send_updates(context, job):
+    for chat_id in subscribers:
+        context.bot.sendMessage(chat_id=chat_id, text='Тут будет инфа по турниру на который подписался пользователь')
+
+def unsubscribe(update, context):
+    if update.message.chat_id in subscribers:
+        subscribers.remove(update.message.chat_id)
+        update.message.reply_text("Вы отпиcались от уведомлений")
+    else:
+        update.message.reply_text('Вы не подписаны на уведомления, наберите /subscribe чтобы подписаться')
+
+def set_alarm(update, context):
+    try:
+        seconds = abs(int(context.args[0]))
+        context.job_queue.run_once(alarm, seconds, context=update.message.chat_id)
+    except (IndexError, ValueError):
+        update.message.reply_text("Введите число секунд после команды /alarm")
+
+def alarm(context):
+    context.bot.send_message(chat_id=context.job.context, text="Сработал будильник!")
