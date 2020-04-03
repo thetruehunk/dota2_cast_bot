@@ -131,3 +131,8 @@ dmypy.json
 # infobot_dota2
 settings.py
 in_progress.md
+.vscode/
+downloads/
+images/
+dota.db3
+env_/
