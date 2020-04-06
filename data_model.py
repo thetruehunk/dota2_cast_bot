@@ -32,12 +32,13 @@ leagues_table = Table(
 games_table = Table(
     "games",
     metadata,
-    Column("game_id", Integer, primary_key=True),
+    Column("id", Integer, primary_key=True),
+    Column("game_id", Integer),
     Column("league_id", Integer),  # ForeignKey('leagues_table.league_id')
     Column("team1", String),
     Column("team2", String),
     Column("game_format", String),
-    Column("start_time", String),
+    Column("start_time", DateTime),
     Column("twitch_channel", String),
 )
 teams_table = Table(

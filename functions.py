@@ -4,6 +4,7 @@ import json
 import logging
 import pyjson5
 import requests
+import urllib.parse
 
 from data_model import *
 
@@ -57,14 +58,10 @@ def get_current_leagues():
 
 def get_league_id(league):
     response = requests.get(
-        "https://api.opendota.com/api/explorer/?sql=select leagueid from leagues where name = "
-        + "'"
-        + league.replace(
-            "#", "%232"
-        )  # мерзкая решетка в названии не отрабатывает в SQL запросе
-        + "'"
+        f"https://api.opendota.com/api/explorer/?sql=select leagueid from leagues where name = '{urllib.parse.quote(league)}'"
     )
-    league_id = response.json()
+    league_id = json.loads(response.text)
+    print(league_id)
     if league_id:
         if league_id["rows"]:
             return league_id["rows"][0]["leagueid"]
@@ -189,3 +186,25 @@ def sync_current_leagues():
             session.commit()
     except AttributeError:
         logging.warning("Not found data in API for Premier")
+
+
+def sync_game_current_league():
+    dota_liquipedi = dota("appname")
+    mapper(Game, games_table)
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    games = dota_liquipedi.get_upcoming_and_ongoing_games()
+    games_json = pyjson5.loads(str(games).replace("None", "'None'"))
+    print(games_json)
+    for item in games_json:
+        my_data = Game(
+            None,
+            get_league_id(item["tournament"]),
+            item["team1"],
+            item["team2"],
+            item["format"],
+            datetime.strptime(item["start_time"][0:-4], "%B %d, %Y - %H:%M"),
+            item["twitch_channel"],
+        )
+        session.add(my_data)
+        session.commit()
