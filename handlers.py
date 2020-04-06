@@ -16,6 +16,7 @@ from functions import get_current_leagues, get_games_current_league
 import emoji
 import logging
 from bot import subscribers
+from data_model import *
 
 """ Emoji """
 trophy = emoji.emojize(":trophy:")
@@ -162,9 +163,24 @@ def inlinequery(update, context):
         update.inline_query.answer(result)
 
 
+def get_or_create_user(update, context):
+    mapper(User, users_table)
+    Session = sessionmaker(blind=engine)
+    session = Session()
+    user_id = update.message.chat_id
+    user_json = pyjson5.loads(str(user))
+    for item in user_json:
+        my_data = User(
+            item["user_id"],
+            item["game_id"],
+        )
+    session.add(my_data)
+    session.commit()
+    
+
 def subscribe(update, context):
     subscribers.add(update.message.chat_id)
-    update.message.reply_text("Вы подписались")
+    update.message.reply_text("Вы подписались") #переделать, чтобы подписаться на конкретный турнир/игру
     print(subscribers)
 
 
