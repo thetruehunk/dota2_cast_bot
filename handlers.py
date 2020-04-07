@@ -170,14 +170,17 @@ def get_or_create_user(update, context):
     user_id = update.message.chat_id
     user_json = pyjson5.loads(str(user))
     for item in user_json:
-        my_data = User(item["user_id"], item["game_id"],)
+        my_data = User(
+            item["user_id"],
+            item["game_id"],
+        )
     session.add(my_data)
     session.commit()
-
+    
 
 def subscribe(update, context):
     subscribers.add(update.message.chat_id)
-    update.message.reply_text("Вы подписались")
+    update.message.reply_text("Вы подписались") #переделать, чтобы подписаться на конкретный турнир/игру
     print(subscribers)
 
 
