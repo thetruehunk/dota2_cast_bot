@@ -61,7 +61,6 @@ def get_league_id(league):
         f"https://api.opendota.com/api/explorer/?sql=select leagueid from leagues where name = '{urllib.parse.quote(league)}'"
     )
     league_id = json.loads(response.text)
-    print(league_id)
     if league_id:
         if league_id["rows"]:
             return league_id["rows"][0]["leagueid"]
