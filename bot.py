@@ -6,11 +6,13 @@ from telegram.ext import (
     Updater,
     Dispatcher,
     CallbackQueryHandler,
+    MessageHandler,
+    Filters,
     CommandHandler,
     InlineQueryHandler,
 )
 from telegram.ext import messagequeue as mq
-
+from sqlalchemy.orm import mapper
 import logging
 from handlers import *
 from settings import *
@@ -33,7 +35,7 @@ def main():
     # Создаем диспетчер
     dp = bot.dispatcher
 
-    bot.job_queue.run_repeating(send_updates, 5)
+    #bot.job_queue.run_repeating(send_updates, 5)
 
     # Делаем запись в лог
     logging.info("bot запускается")
@@ -41,7 +43,11 @@ def main():
     # Создаем обработчики
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("help", help))
-    dp.add_handler(CallbackQueryHandler(help, "help"))
+    dp.add_handler(
+        MessageHandler(Filters.regex("OK, ищу информацию по (.*)"), get_tournament_info)
+    )
+    dp.add_handler(CallbackQueryHandler(subscribe, "subscribe"))
+    # dp.add_handler(CallbackQueryHandler(help, "help"))
     dp.add_handler(InlineQueryHandler(inlinequery))
     dp.add_handler(CommandHandler("subscribe", subscribe))
     dp.add_handler(CommandHandler("unsubscribe", unsubscribe))
