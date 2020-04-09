@@ -8,6 +8,7 @@ from telegram import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     KeyboardButton,
+    ParseMode
 )
 from telegram.ext import messagequeue as mq
 
@@ -58,9 +59,12 @@ def help(update, context):
 
 def get_tournament_info(update, context):
     message = update.message.text
-    print(message.split("по ")[1])
-    update.message.reply_text(get_games_current_league(message.split(" '")[1]))
-
+    reply_games_kb = []
+    games = get_games_current_league(message.split("по ")[1])
+    for game in games:
+        reply_games_kb.append([InlineKeyboardButton(f"🔹{game[1]} ⚔️ 🔹{game[2]}   Format: {game[3]}  🕔 {game[4]}", callback_data="subscribe", parse_mode=ParseMode.MARKDOWN)])
+    markup = InlineKeyboardMarkup(reply_games_kb)
+    update.message.reply_text(f'*{message.split("по ")[1]}*', reply_markup=markup, parse_mode=ParseMode.MARKDOWN)
 
 def leagues_search(query):
     leagues_list = get_current_leagues()
