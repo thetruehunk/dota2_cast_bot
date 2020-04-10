@@ -73,8 +73,7 @@ def check_end_league(period):
     try:
         p_end_year = period.split(",")[-1].strip()
         p_end_day = period.split(",")[-2].split()[-1]
-        p_end_month = ""
-
+        
         if (
             "-" in period.split(",")[-2]
             and len(period.split(",")[-2].split("-")[-1].split()) == 2
@@ -93,7 +92,7 @@ def check_end_league(period):
             "%H:%M:%S %b %d %Y",
         )
 
-        """ Проблема с текущей датой"""
+        # Проблема с текущей датой
         if now <= parsed_period:
             return True
         else:
