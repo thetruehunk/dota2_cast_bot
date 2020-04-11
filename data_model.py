@@ -6,6 +6,7 @@ from datetime import datetime
 from sqlalchemy import create_engine
 from sqlalchemy import Table, Column, Integer, String, DateTime, MetaData
 
+
 # получаем путь к текущему каталогу
 basedir = os.path.abspath(os.path.dirname(__file__))
 # подключаемся к БД

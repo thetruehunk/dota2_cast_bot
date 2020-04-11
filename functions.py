@@ -51,8 +51,7 @@ def check_end_league(period):
     try:
         p_end_year = period.split(",")[-1].strip()
         p_end_day = period.split(",")[-2].split()[-1]
-        p_end_month = ""
-
+        
         if (
             "-" in period.split(",")[-2]
             and len(period.split(",")[-2].split("-")[-1].split()) == 2
@@ -71,7 +70,7 @@ def check_end_league(period):
             "%H:%M:%S %b %d %Y",
         )
 
-        """ Проблема с текущей датой"""
+        # Проблема с текущей датой
         if now <= parsed_period:
             return True
         else:
@@ -88,7 +87,7 @@ def get_games_current_league(league):
     session = Session()
     games = []
     for game in session.query(Game).filter(Game.league_name==text(league)): # сортировка по дате 
-        games.append((game.league_name, game.team1, game.team2, game.game_format, game.start_time))
+        games.append((game.league_name, game.team1, game.team2, game.game_format, game.start_time, game.game_id))
     session.commit()
     return games
 

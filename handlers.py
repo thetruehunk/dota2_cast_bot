@@ -10,7 +10,6 @@ from telegram import (
     KeyboardButton,
     ParseMode
 )
-from telegram.ext import messagequeue as mq
 
 from uuid import uuid4
 from functions import get_current_leagues, get_games_current_league
@@ -18,6 +17,8 @@ import emoji
 import logging
 from bot import subscribers
 from data_model import *
+from sqlalchemy.orm import sessionmaker
+
 
 """ Emoji """
 trophy = emoji.emojize(":trophy:")
@@ -30,15 +31,15 @@ party_popper = emoji.emojize(":party_popper:")
 reply_start_kb = [
     [
         InlineKeyboardButton(
-            "ТУРНИРЫ " + trophy + "", switch_inline_query_current_chat="current"
+            f"ТУРНИРЫ {trophy}", switch_inline_query_current_chat="current"
         )
     ],
     [
         InlineKeyboardButton(
-            "НАЙТИ " + magnifying_glass + "", switch_inline_query_current_chat="search"
+            f"НАЙТИ {magnifying_glass}", switch_inline_query_current_chat="search"
         )
     ],
-    [InlineKeyboardButton("ПОМОЩЬ " + open_book + "", callback_data="help")],
+    [InlineKeyboardButton(f"ПОМОЩЬ {open_book}", callback_data="help")],
 ]
 
 markup = InlineKeyboardMarkup(reply_start_kb)
@@ -62,9 +63,10 @@ def get_tournament_info(update, context):
     reply_games_kb = []
     games = get_games_current_league(message.split("по ")[1])
     for game in games:
-        reply_games_kb.append([InlineKeyboardButton(f"🔹{game[1]} ⚔️ 🔹{game[2]}   Format: {game[3]}  🕔 {game[4]}", callback_data="subscribe", parse_mode=ParseMode.MARKDOWN)])
+        reply_games_kb.append([InlineKeyboardButton(f"🔹{game[1]} ⚔️ 🔹{game[2]}   Format: {game[3]}  🕔 {game[4]}", callback_data=game[5], parse_mode=ParseMode.MARKDOWN)])
     markup = InlineKeyboardMarkup(reply_games_kb)
     update.message.reply_text(f'*{message.split("по ")[1]}*', reply_markup=markup, parse_mode=ParseMode.MARKDOWN)
+
 
 def leagues_search(query):
     leagues_list = get_current_leagues()
@@ -73,61 +75,6 @@ def leagues_search(query):
         if query in league["name"]:
             result.append(league)
     return result
-
-
-"""
-#список всех турниров
-def get_tournaments(tournamentType=None):
-		tournaments = []
-		if tournamentType is None:
-			page_val = 'Portal:Tournaments'
-		else:
-			page_val = tournamentType.capitalize()+'_Tournaments'				
-		soup,__ = self.liquipedia.parse(page_val)
-		div_rows = soup.find_all('div',class_='divRow')
-		for row in div_rows:
-			tournament = {}
-
-			values = row.find('div',class_="Tournament").get_text().split('\n')
-			tournament['tier'] = re.sub('\W+',' ',values[0]).strip()
-			tournament['name'] = values[1]
-
-			try:
-				tournament['icon'] = self.__image_base_url+row.find('div',class_="Tournament").find('img').get('src')
-			except AttributeError:
-				pass	
-
-			tournament['dates'] = row.find('div',class_="Date").get_text()
-
-			try:
-				tournament['prize_pool'] = int(row.find('div',class_="Prize").get_text().rstrip().replace('$','').replace(',',''))
-			except (AttributeError,ValueError):
-				tournament['prize_pool'] = 0
-
-			tournament['teams'] = re.sub('[A-Za-z]','',row.find('div',class_="PlayerNumber").get_text()).rstrip()	
-			location_list= unicodedata.normalize("NFKD",row.find('div',class_="Location").get_text().rstrip()).split(',')	
-			tournament['host_location'] = location_list[0]
-
-			try:
-				tournament['event_location'] = location_list[1]
-			except IndexError:
-				pass	
-		
-			if len(row) < 15:
-				links_a = row.find('div',class_="SecondPlace").find_all('a')
-				tournament['links'] = []
-				for link in links_a:
-					link_list = link.get('href').split('.')
-					site_name = link_list[-2].replace('https://','')
-					tournament['links'].append({site_name:link.get('href')})
-			else:
-				tournament['winner'] = 	unicodedata.normalize("NFKD",row.find('div',class_="FirstPlace").get_text().rstrip())	
-				tournament['runner_up'] = 	unicodedata.normalize("NFKD",row.find('div',class_="SecondPlace").get_text().rstrip())	
-
-			tournaments.append(tournament)
-
-		return tournaments
-"""
 
 
 def inlinequery(update, context):
@@ -181,6 +128,18 @@ def get_or_create_user(update, context):
     session.add(my_data)
     session.commit()
     
+
+def ikb_subscribe(update, context):
+    ikb_query = update.callback_query
+    print(update.callback_query.data)
+    user_choice = ikb_query.data
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    game = session.query(Game).filter(Game.game_id==user_choice).first()
+    text = f"Вы подписались на уведомления по игре {game.team1} vs {game.team2}"
+    context.bot.edit_message_text(text=text, chat_id=ikb_query.message.chat.id,
+            message_id=ikb_query.message.message_id)
+
 
 def subscribe(update, context):
     subscribers.add(update.message.chat_id)

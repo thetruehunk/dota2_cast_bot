@@ -46,7 +46,8 @@ def main():
     dp.add_handler(
         MessageHandler(Filters.regex("OK, ищу информацию по (.*)"), get_tournament_info)
     )
-    dp.add_handler(CallbackQueryHandler(subscribe, "subscribe"))
+    dp.add_handler(CallbackQueryHandler(ikb_subscribe))
+    # dp.add_handler(CallbackQueryHandler(subscribe, "subscribe"))
     # dp.add_handler(CallbackQueryHandler(help, "help"))
     dp.add_handler(InlineQueryHandler(inlinequery))
     dp.add_handler(CommandHandler("subscribe", subscribe))
@@ -54,7 +55,6 @@ def main():
     dp.add_handler(
         CommandHandler("alarm", set_alarm, pass_args=True, pass_job_queue=True)
     )
-
     # Запускаем бота
     bot.start_polling()
     bot.idle()
