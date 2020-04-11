@@ -1,12 +1,11 @@
 """ Здесь лежат описания таблиц и классы для взаимодействия ними"""
 
 
+import os
+from datetime import datetime
 from sqlalchemy import create_engine
 from sqlalchemy import Table, Column, Integer, String, DateTime, MetaData
-# from sqlalchemy.orm import mapper, sessionmaker
-# from sqlalchemy.sql import text
-from datetime import datetime
-import os
+
 
 # получаем путь к текущему каталогу
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -80,7 +79,15 @@ class League(object):
 
 class Game(object):
     def __init__(
-        self, game_id, league_id, league_name, team1, team2, game_format, start_time, twitch_channel,
+        self,
+        game_id,
+        league_id,
+        league_name,
+        team1,
+        team2,
+        game_format,
+        start_time,
+        twitch_channel,
     ):
         self.game_id = game_id
         self.league_id = league_id
@@ -105,3 +112,8 @@ class User(object):
     def __init__(self, user_id, game_id):
         self.user_id = user_id
         self.game_id = game_id
+
+
+# Если БД новая - создаем стуктуру
+if not engine.dialect.has_table(engine, "leagues"):
+    metadata.create_all(engine)
