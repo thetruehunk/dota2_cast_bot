@@ -3,7 +3,8 @@
 
 from sqlalchemy import create_engine
 from sqlalchemy import Table, Column, Integer, String, DateTime, MetaData
-from sqlalchemy.orm import mapper, sessionmaker
+# from sqlalchemy.orm import mapper, sessionmaker
+# from sqlalchemy.sql import text
 from datetime import datetime
 import os
 
@@ -32,9 +33,9 @@ leagues_table = Table(
 games_table = Table(
     "games",
     metadata,
-    Column("id", Integer, primary_key=True),
-    Column("game_id", Integer),
+    Column("game_id", Integer, primary_key=True),
     Column("league_id", Integer),  # ForeignKey('leagues_table.league_id')
+    Column("league_name", String),
     Column("team1", String),
     Column("team2", String),
     Column("game_format", String),
@@ -79,10 +80,11 @@ class League(object):
 
 class Game(object):
     def __init__(
-        self, game_id, league_id, team1, team2, game_format, start_time, twitch_channel,
+        self, game_id, league_id, league_name, team1, team2, game_format, start_time, twitch_channel,
     ):
         self.game_id = game_id
         self.league_id = league_id
+        self.league_name = league_name
         self.team1 = team1
         self.team2 = team2
         self.game_format = game_format

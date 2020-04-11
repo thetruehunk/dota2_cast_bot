@@ -6,7 +6,9 @@ from telegram import (
     InlineQueryResultArticle,
     InputTextMessageContent,
     InlineKeyboardButton,
-    InlineKeyboardMarkup,    
+    InlineKeyboardMarkup,
+    KeyboardButton,
+    ParseMode
 )
 
 from uuid import uuid4
@@ -15,6 +17,8 @@ import emoji
 import logging
 from bot import subscribers
 from data_model import *
+from sqlalchemy.orm import sessionmaker
+
 
 """ Emoji """
 trophy = emoji.emojize(":trophy:")
@@ -27,15 +31,15 @@ party_popper = emoji.emojize(":party_popper:")
 reply_start_kb = [
     [
         InlineKeyboardButton(
-            "ТУРНИРЫ %s" % trophy % "", switch_inline_query_current_chat="current"
+            f"ТУРНИРЫ {trophy}", switch_inline_query_current_chat="current"
         )
     ],
     [
         InlineKeyboardButton(
-            "НАЙТИ %s" % magnifying_glass % "", switch_inline_query_current_chat="search"
+            f"НАЙТИ {magnifying_glass}", switch_inline_query_current_chat="search"
         )
     ],
-    [InlineKeyboardButton("ПОМОЩЬ %s" % open_book % "", callback_data="help")],
+    [InlineKeyboardButton(f"ПОМОЩЬ {open_book}", callback_data="help")],
 ]
 
 markup = InlineKeyboardMarkup(reply_start_kb)
@@ -56,8 +60,12 @@ def help(update, context):
 
 def get_tournament_info(update, context):
     message = update.message.text
-    print(message.split("по ")[1])
-    update.message.reply_text(get_games_current_league(message.split(" '")[1]))
+    reply_games_kb = []
+    games = get_games_current_league(message.split("по ")[1])
+    for game in games:
+        reply_games_kb.append([InlineKeyboardButton(f"🔹{game[1]} ⚔️ 🔹{game[2]}   Format: {game[3]}  🕔 {game[4]}", callback_data=game[5], parse_mode=ParseMode.MARKDOWN)])
+    markup = InlineKeyboardMarkup(reply_games_kb)
+    update.message.reply_text(f'*{message.split("по ")[1]}*', reply_markup=markup, parse_mode=ParseMode.MARKDOWN)
 
 
 def leagues_search(query):
@@ -120,6 +128,18 @@ def get_or_create_user(update, context):
     session.add(my_data)
     session.commit()
     
+
+def ikb_subscribe(update, context):
+    ikb_query = update.callback_query
+    print(update.callback_query.data)
+    user_choice = ikb_query.data
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    game = session.query(Game).filter(Game.game_id==user_choice).first()
+    text = f"Вы подписались на уведомления по игре {game.team1} vs {game.team2}"
+    context.bot.edit_message_text(text=text, chat_id=ikb_query.message.chat.id,
+            message_id=ikb_query.message.message_id)
+
 
 def subscribe(update, context):
     subscribers.add(update.message.chat_id)

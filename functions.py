@@ -5,9 +5,12 @@ import logging
 import pyjson5
 import requests
 import urllib.parse
+from sqlalchemy.orm import mapper, sessionmaker
+from sqlalchemy.sql import text
+from data_model import engine, League, Game, leagues_table, games_table
 
-from data_model import *
-
+mapper(Game, games_table)
+mapper(League, leagues_table)
 
 def get_leagues():
     # os.environ['STEAM_API_KEY']
@@ -19,40 +22,15 @@ def get_leagues():
 
 
 def get_current_leagues():
-    dota_liquipedi = dota("appname")
-
+    Session = sessionmaker(bind=engine)
+    session = Session()
     leagues = []
-    try:
-        major = dota_liquipedi.get_tournaments("Major")
-        major_json = pyjson5.loads(str(major))
-        for item in major_json:
-            if check_end_league(item["dates"]):
-                leagues.append(
-                    (item["name"], item["icon"], item["prize_pool"], item["dates"])
-                )
-    except AttributeError:
-        logging.warning("Not found data in API for Major")
-    try:
-        minor = dota_liquipedi.get_tournaments("Minor")
-        minor_json = pyjson5.loads(str(minor))
-        for item in minor_json:
-            if check_end_league(item["dates"]):
-                leagues.append(
-                    (item["name"], item["icon"], item["prize_pool"], item["dates"])
-                )
-    except AttributeError:
-        logging.warning("Not found data in API for Minor")
-    try:
-        premier = dota_liquipedi.get_tournaments("Premier")
-        premier_json = pyjson5.loads(str(premier))
-        for item in premier_json:
-            if check_end_league(item["dates"]):
-                leagues.append(
-                    (item["name"], item["icon"], item["prize_pool"], item["dates"])
-                )
-    except AttributeError:
-        logging.warning("Not found data in API for Premier")
-
+    for league in session.query(League):
+        if check_end_league(league.dates):
+            leagues.append(
+                (league.name, league.icon_url, league.prize_pool, league.dates)
+            )
+    session.commit()
     return leagues
 
 
@@ -105,15 +83,13 @@ def check_end_league(period):
 
 
 def get_games_current_league(league):
-    league_game = []
-    dota_liquipedi = dota("appname")
-    games = dota_liquipedi.get_upcoming_and_ongoing_games()
-    games_json = pyjson5.loads(str(games).replace("None", "'None'"))
-    for item in games_json:
-        if item["tournament"] == league:
-            league_game.append(item)
-    print(league_game)
-    return league_game
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    games = []
+    for game in session.query(Game).filter(Game.league_name==text(league)): # сортировка по дате 
+        games.append((game.league_name, game.team1, game.team2, game.game_format, game.start_time, game.game_id))
+    session.commit()
+    return games
 
 
 def sync_current_leagues():
@@ -129,7 +105,7 @@ def sync_current_leagues():
                 my_data = League(
                     (get_league_id(item["name"].strip())),
                     item["tier"],
-                    item["name"],
+                    item["name"].strip(),
                     item["icon"],
                     item["dates"],
                     item["prize_pool"],
@@ -150,7 +126,7 @@ def sync_current_leagues():
                 my_data = League(
                     (get_league_id(item["name"].strip())),
                     item["tier"],
-                    item["name"],
+                    item["name"].strip(),
                     item["icon"],
                     item["dates"],
                     item["prize_pool"],
@@ -171,7 +147,7 @@ def sync_current_leagues():
                 my_data = League(
                     (get_league_id(item["name"].strip())),
                     item["tier"],
-                    item["name"],
+                    item["name"].strip(),
                     item["icon"],
                     item["dates"],
                     item["prize_pool"],
@@ -198,6 +174,7 @@ def sync_game_current_league():
         my_data = Game(
             None,
             get_league_id(item["tournament"]),
+            item["tournament"],
             item["team1"],
             item["team2"],
             item["format"],
