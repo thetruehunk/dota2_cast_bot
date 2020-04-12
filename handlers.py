@@ -16,8 +16,7 @@ from uuid import uuid4
 from functions import get_current_leagues, get_games_current_league
 import emoji
 import logging
-from bot import subscribers
-from data_model import *
+# from bot import subscribers
 
 """ Emoji """
 trophy = emoji.emojize(":trophy:")

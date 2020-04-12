@@ -6,11 +6,12 @@ import pyjson5
 import requests
 import urllib.parse
 from sqlalchemy.orm import mapper, sessionmaker
-from sqlalchemy.sql import text
+from sqlalchemy.sql import text, exists
 from data_model import engine, League, Game, leagues_table, games_table
 
 mapper(Game, games_table)
 mapper(League, leagues_table)
+
 
 def get_leagues():
     # os.environ['STEAM_API_KEY']
@@ -35,14 +36,18 @@ def get_current_leagues():
 
 
 def get_league_id(league):
-    response = requests.get(
-        f"https://api.opendota.com/api/explorer/?sql=select leagueid from leagues where name = '{urllib.parse.quote(league)}'"
-    )
-    league_id = json.loads(response.text)
-    if league_id:
-        if league_id["rows"]:
-            return league_id["rows"][0]["leagueid"]
-    else:
+    try:
+        response = requests.get(
+            f"https://api.opendota.com/api/explorer/?sql=select leagueid from leagues where name = '{urllib.parse.quote(league)}'"
+        )
+        league_id = json.loads(response.text)
+        if league_id:
+            if league_id["rows"]:
+                return league_id["rows"][0]["leagueid"]
+        else:
+            return None
+    except KeyError:
+        logging.info(f"Отсутствуют данные по: {league}")
         return None
 
 
@@ -87,35 +92,53 @@ def get_games_current_league(league):
     Session = sessionmaker(bind=engine)
     session = Session()
     games = []
-    for game in session.query(Game).filter(Game.league_name==text(league)): # сортировка по дате 
-        games.append((game.league_name, game.team1, game.team2, game.game_format, game.start_time))
+    for game in session.query(Game).filter(
+        Game.league_name == text(league)
+    ):  # сортировка по дате
+        games.append(
+            (
+                game.league_name,
+                game.team1,
+                game.team2,
+                game.game_format,
+                game.start_time,
+            )
+        )
     session.commit()
     return games
 
 
 def sync_current_leagues():
     dota_liquipedi = dota("appname")
-    mapper(League, leagues_table)  # non_primary=True
     Session = sessionmaker(bind=engine)
     session = Session()
     try:
         major = dota_liquipedi.get_tournaments("Major")
         major_json = pyjson5.loads(str(major))
         for item in major_json:
-            if check_end_league(item["dates"]):
-                my_data = League(
-                    (get_league_id(item["name"].strip())),
-                    item["tier"],
-                    item["name"].strip(),
-                    item["icon"],
-                    item["dates"],
-                    item["prize_pool"],
-                    item["teams"],
-                    item["host_location"],
-                    item["event_location"],
-                    # item["links"],
+            if (
+                session.query(League)
+                .filter(
+                    League.name == item["name"].strip(), League.dates == item["dates"]
                 )
-            session.add(my_data)
+                .scalar()
+            ):
+                logging.info("Такой турнир уже существует")
+            else:
+                if check_end_league(item["dates"]):
+                    my_data = League(
+                        (get_league_id(item["name"].strip())),
+                        item["tier"],
+                        item["name"].strip(),
+                        item["icon"],
+                        item["dates"],
+                        item["prize_pool"],
+                        item["teams"],
+                        item["host_location"],
+                        item["event_location"],
+                        # item["links"],
+                    )
+                    session.add(my_data)
             session.commit()
     except AttributeError:
         logging.warning("Not found data in API for Major")
@@ -123,20 +146,29 @@ def sync_current_leagues():
         minor = dota_liquipedi.get_tournaments("Minor")
         minor_json = pyjson5.loads(str(minor))
         for item in minor_json:
-            if check_end_league(item["dates"]):
-                my_data = League(
-                    (get_league_id(item["name"].strip())),
-                    item["tier"],
-                    item["name"].strip(),
-                    item["icon"],
-                    item["dates"],
-                    item["prize_pool"],
-                    item["teams"],
-                    item["host_location"],
-                    item["event_location"],
-                    # item["links"],
+            if (
+                session.query(League)
+                .filter(
+                    League.name == item["name"].strip(), League.dates == item["dates"]
                 )
-            session.add(my_data)
+                .scalar()
+            ):
+                logging.info("Такой турнир уже существует")
+            else:
+                if check_end_league(item["dates"]):
+                    my_data = League(
+                        (get_league_id(item["name"].strip())),
+                        item["tier"],
+                        item["name"].strip(),
+                        item["icon"],
+                        item["dates"],
+                        item["prize_pool"],
+                        item["teams"],
+                        item["host_location"],
+                        item["event_location"],
+                        # item["links"],
+                    )
+                    session.add(my_data)
             session.commit()
     except AttributeError:
         logging.warning("Not found data in API for Minor")
@@ -144,20 +176,29 @@ def sync_current_leagues():
         premier = dota_liquipedi.get_tournaments("Premier")
         premier_json = pyjson5.loads(str(premier))
         for item in premier_json:
-            if check_end_league(item["dates"]):
-                my_data = League(
-                    (get_league_id(item["name"].strip())),
-                    item["tier"],
-                    item["name"].strip(),
-                    item["icon"],
-                    item["dates"],
-                    item["prize_pool"],
-                    item["teams"],
-                    item["host_location"],
-                    item["event_location"],
-                    # item["links"],
+            if (
+                session.query(League)
+                .filter(
+                    League.name == item["name"].strip(), League.dates == item["dates"]
                 )
-            session.add(my_data)
+                .scalar()
+            ):
+                logging.info("Такой турнир уже существует")
+            else:
+                if check_end_league(item["dates"]):
+                    my_data = League(
+                        (get_league_id(item["name"].strip())),
+                        item["tier"],
+                        item["name"].strip(),
+                        item["icon"],
+                        item["dates"],
+                        item["prize_pool"],
+                        item["teams"],
+                        item["host_location"],
+                        item["event_location"],
+                        # item["links"],
+                    )
+                    session.add(my_data)
             session.commit()
     except AttributeError:
         logging.warning("Not found data in API for Premier")
@@ -165,22 +206,31 @@ def sync_current_leagues():
 
 def sync_game_current_league():
     dota_liquipedi = dota("appname")
-    mapper(Game, games_table)
     Session = sessionmaker(bind=engine)
     session = Session()
     games = dota_liquipedi.get_upcoming_and_ongoing_games()
     games_json = pyjson5.loads(str(games).replace("None", "'None'"))
-    print(games_json)
     for item in games_json:
-        my_data = Game(
-            None,
-            get_league_id(item["tournament"]),
-            item["tournament"],
-            item["team1"],
-            item["team2"],
-            item["format"],
-            datetime.strptime(item["start_time"][0:-4], "%B %d, %Y - %H:%M"),
-            item["twitch_channel"],
-        )
-        session.add(my_data)
+        if (
+            session.query(Game)
+            .filter(
+                Game.league_name == item["tournament"],
+                Game.start_time
+                == datetime.strptime(item["start_time"][0:-4], "%B %d, %Y - %H:%M"),
+            )
+            .scalar()
+        ):
+            logging.info("Такая игра существует")
+        else:
+            my_data = Game(
+                None,
+                get_league_id(item["tournament"]),
+                item["tournament"],
+                item["team1"],
+                item["team2"],
+                item["format"],
+                datetime.strptime(item["start_time"][0:-4], "%B %d, %Y - %H:%M"),
+                item["twitch_channel"],
+            )
+            session.add(my_data)
         session.commit()
