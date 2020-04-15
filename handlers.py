@@ -1,7 +1,7 @@
 """
 Здесь мы обрабатываем вызываемые функции
 """
-from datetime import datetime
+from datetime import datetime, timedelta
 from telegram import (
     InlineQueryResultArticle,
     InputTextMessageContent,
@@ -17,7 +17,7 @@ import emoji
 import logging
 from bot import subscribers
 from data_model import *
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, mapper
 
 
 """ Emoji """
@@ -25,6 +25,9 @@ trophy = emoji.emojize(":trophy:")
 magnifying_glass = emoji.emojize(":magnifying_glass_tilted_right:")
 open_book = emoji.emojize(":open_book:")
 party_popper = emoji.emojize(":party_popper:")
+
+""" Mapper """
+mapper(User, users_table)
 
 
 """ Клавиатуры """
@@ -113,7 +116,7 @@ def inlinequery(update, context):
             )
         update.inline_query.answer(result)
 
-
+"""
 def get_or_create_user(update, context):
     mapper(User, users_table)
     Session = sessionmaker(blind=engine)
@@ -127,11 +130,13 @@ def get_or_create_user(update, context):
         )
     session.add(my_data)
     session.commit()
-    
+"""    
 
+
+# подписка на игру
 def ikb_subscribe(update, context):
     ikb_query = update.callback_query
-    print(update.callback_query.data)
+    print(update.message)
     user_choice = ikb_query.data
     Session = sessionmaker(bind=engine)
     session = Session()
@@ -139,30 +144,24 @@ def ikb_subscribe(update, context):
     text = f"Вы подписались на уведомления по игре {game.team1} vs {game.team2}"
     context.bot.edit_message_text(text=text, chat_id=ikb_query.message.chat.id,
             message_id=ikb_query.message.message_id)
+    ikb_newUser = User(int(ikb_query.message.chat.id), int(ikb_query.data))
+    session.add(ikb_newUser)
+    session.commit()
 
+# вызов из базы юзера с подпиской, сравнение с games и получение времени 
+# начала игры + ссылка на твич канал
+def get_game_start_twitch():
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    notification_30 = datetime.now() + timedelta(minutes=30)
+    print(notification_30)
+    for game_id, start_time in session.query(Game.game_id, Game.start_time).filter(Game.start_time <= notification_30, Game.start_time >= datetime.now()):
+        print(game_id, start_time)
 
-def subscribe(update, context):
-    subscribers.add(update.message.chat_id)
-    update.message.reply_text("Вы подписались") #переделать, чтобы подписаться на конкретный турнир/игру
-    print(subscribers)
-
-
-def send_updates(context, job):
-    for chat_id in subscribers:
-        context.bot.sendMessage(
-            chat_id=chat_id,
-            text="Тут будет инфа по турниру на который подписался пользователь",
-        )
-
-
-def unsubscribe(update, context):
-    if update.message.chat_id in subscribers:
-        subscribers.remove(update.message.chat_id)
-        update.message.reply_text("Вы отпиcались от уведомлений")
-    else:
-        update.message.reply_text(
-            "Вы не подписаны на уведомления, наберите /subscribe чтобы подписаться"
-        )
+# переделать на увдомления по подписке
+"""def send_updates(context, job):
+        subscrubeJob = updater.job_queue
+    context.job_morning = subscrubeJob.run_once()"""
 
 
 def set_alarm(update, context):

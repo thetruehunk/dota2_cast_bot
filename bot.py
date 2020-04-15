@@ -35,6 +35,8 @@ def main():
     # Создаем диспетчер
     dp = bot.dispatcher
 
+    get_game_start_twitch()
+
     #bot.job_queue.run_repeating(send_updates, 5)
 
     # Делаем запись в лог
@@ -50,8 +52,6 @@ def main():
     # dp.add_handler(CallbackQueryHandler(subscribe, "subscribe"))
     # dp.add_handler(CallbackQueryHandler(help, "help"))
     dp.add_handler(InlineQueryHandler(inlinequery))
-    dp.add_handler(CommandHandler("subscribe", subscribe))
-    dp.add_handler(CommandHandler("unsubscribe", unsubscribe))
     dp.add_handler(
         CommandHandler("alarm", set_alarm, pass_args=True, pass_job_queue=True)
     )

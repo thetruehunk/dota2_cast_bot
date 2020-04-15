@@ -49,7 +49,7 @@ teams_table = Table(
     Column("team_name", String),
     Column("team_logo", String),
 )
-users_table = Table("users", metadata, Column("user_id", Integer, primary_key=True),)
+users_table = Table("users", metadata, Column("id", Integer, primary_key=True), Column("user_id", Integer), Column("game_id", Integer))
 
 # создаем обьекты для взаимодействия с БД
 class League(object):
