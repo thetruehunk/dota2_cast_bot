@@ -14,7 +14,7 @@ from telegram.ext import (
 from telegram.ext import messagequeue as mq
 from sqlalchemy.orm import mapper
 import logging
-from handlers import start, help, subscribe, unsubscribe, set_alarm, inlinequery, get_tournament_info
+from handlers import start, help, set_alarm, inlinequery, get_tournament_info, get_game_start_twitch, ikb_subscribe
 from functions import (
     sync_current_leagues,
     sync_game_current_league,
@@ -33,12 +33,13 @@ subscribers = set()
 def main():
     # Создаем бота
     bot = Updater(TOKEN, use_context=True, request_kwargs=PROXY)
-    bot.bot._msg_queue = mq.MessageQueue()
-    bot.bot._is_messages_queued_default = True
-
+    
     # Создаем диспетчер
     dp = bot.dispatcher
 
+    bot.job_queue.run_once(get_game_start_twitch, 2)
+
+    # bot.job_queue.run_repeating(send_updates, 5)
     # bot.job_queue.run_repeating(send_updates, 5)
 
     # Ставим в очередь задачи по синхронизации БД
@@ -46,8 +47,8 @@ def main():
     # bot.job_queue.run_repeating(sync_game_current_league, 3600)
 
     # выполняем синхронизацию БД с API
-    sync_current_leagues()
-    sync_game_current_league()
+    #sync_current_leagues()
+    #sync_game_current_league()
     # Делаем запись в лог
     logging.info("bot запускается")
 
@@ -61,8 +62,6 @@ def main():
     # dp.add_handler(CallbackQueryHandler(subscribe, "subscribe"))
     # dp.add_handler(CallbackQueryHandler(help, "help"))
     dp.add_handler(InlineQueryHandler(inlinequery))
-    dp.add_handler(CommandHandler("subscribe", subscribe))
-    dp.add_handler(CommandHandler("unsubscribe", unsubscribe))
     dp.add_handler(
         CommandHandler("alarm", set_alarm, pass_args=True, pass_job_queue=True)
     )
