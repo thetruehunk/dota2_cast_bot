@@ -24,8 +24,6 @@ from handlers import (
     inlinequery,
     set_alarm,
     start,
-    subscribe,
-    unsubscribe,
 )
 
 from settings import PROXY, TOKEN
