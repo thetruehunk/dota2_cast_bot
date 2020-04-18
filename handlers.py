@@ -15,7 +15,8 @@ from uuid import uuid4
 from functions import get_current_leagues, get_games_current_league
 import emoji
 import logging
-from bot import subscribers
+import time
+# from bot import subscribers
 from data_model import *
 from sqlalchemy.orm import sessionmaker, mapper
 
@@ -147,16 +148,27 @@ def ikb_subscribe(update, context):
     ikb_newUser = User(int(ikb_query.message.chat.id), int(ikb_query.data))
     session.add(ikb_newUser)
     session.commit()
+    get_game_start_twitch(context)
+
+
+def callback_alarm(context, chat_id, team1, team2, twitch_channel):
+    context.bot.send_message(chat_id=chat_id, text=f'Скоро начинается игра {team1} vs {team2} на канале https://www.twitch.tv/{twitch_channel}')
+
 
 # вызов из базы юзера с подпиской, сравнение с games и получение времени 
 # начала игры + ссылка на твич канал
-def get_game_start_twitch():
+def get_game_start_twitch(context):
     Session = sessionmaker(bind=engine)
     session = Session()
-    notification_30 = datetime.now() + timedelta(minutes=30)
-    print(notification_30)
-    for game_id, start_time in session.query(Game.game_id, Game.start_time).filter(Game.start_time <= notification_30, Game.start_time >= datetime.now()):
-        print(game_id, start_time)
+    notification_30 = datetime.now() + timedelta(hours=5) #когда будет готово удалить
+    print(notification_30)    
+    for game_id, start_time, team1, team2, twitch_channel in session.query(Game.game_id, Game.start_time, Game.team1, Game.team2, Game.twitch_channel).filter(Game.start_time <= notification_30, Game.start_time >= datetime.now()):
+        if game_id:
+            for user_id, game_id in session.query(User.user_id, User.game_id).filter(User.game_id == game_id):
+                game_timer = int((start_time - datetime.now()).total_seconds())                
+                context.job_queue.run_once(callback_alarm(context, user_id, team1, team2, twitch_channel), 5)                    
+    session.commit()
+
 
 # переделать на увдомления по подписке
 """def send_updates(context, job):
