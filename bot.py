@@ -2,24 +2,32 @@
 Здесь находится все для инициализации и старта  бота
 """
 
+import logging
+
 from telegram.ext import (
-    Updater,
-    Dispatcher,
     CallbackQueryHandler,
-    MessageHandler,
-    Filters,
     CommandHandler,
+    Dispatcher,
+    Filters,
     InlineQueryHandler,
+    MessageHandler,
+    Updater,
 )
 from telegram.ext import messagequeue as mq
-from sqlalchemy.orm import mapper
-import logging
-from handlers import start, help, subscribe, unsubscribe, set_alarm, inlinequery, get_tournament_info
-from functions import (
-    sync_current_leagues,
-    sync_game_current_league,
+
+from functions import sync_current_leagues, sync_game_current_league
+from handlers import (
+    get_tournament_info,
+    help,
+    ikb_subscribe,
+    inlinequery,
+    set_alarm,
+    start,
+    subscribe,
+    unsubscribe,
 )
-from settings import TOKEN, PROXY
+from settings import PROXY, TOKEN
+from sqlalchemy.orm import mapper
 
 logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s",
