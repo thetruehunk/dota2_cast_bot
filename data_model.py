@@ -4,7 +4,7 @@
 import os
 from datetime import datetime
 from sqlalchemy import create_engine
-from sqlalchemy import Table, Column, Integer, String, DateTime, MetaData
+from sqlalchemy import Table, Column, Integer, String, Binary, DateTime, MetaData
 
 
 # получаем путь к текущему каталогу
@@ -27,7 +27,7 @@ leagues_table = Table(
     Column("teams", Integer),
     Column("host_location", String),
     Column("event_location", String),
-    # Column("links", String),
+    Column("links", String),
 )
 games_table = Table(
     "games",
@@ -63,7 +63,7 @@ class League(object):
         teams,
         host_location,
         event_location,
-        # links,
+        links,
     ):
         self.league_id = league_id
         self.tier = tier
@@ -74,7 +74,7 @@ class League(object):
         self.teams = teams
         self.host_location = host_location
         self.event_location = event_location
-        # self.links = links
+        self.links = links
 
 
 class Game(object):
