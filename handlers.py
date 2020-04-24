@@ -1,33 +1,21 @@
-"""
-Здесь мы обрабатываем вызываемые функции
-"""
+#######################################
+#   whis core functions for handlers  #
+#######################################
 
 import logging
-from datetime import datetime, timedelta
 import time
+from datetime import datetime, timedelta
+from time import strftime
 from uuid import uuid4
 
-import emoji
+from telegram import (InlineKeyboardButton, InlineKeyboardMarkup,
+                      InlineQueryResultArticle, InputTextMessageContent,
+                      KeyboardButton, ParseMode)
 
-from telegram import (
-    InlineKeyboardButton,
-    InlineKeyboardMarkup,
-    InlineQueryResultArticle,
-    InputTextMessageContent,
-    KeyboardButton,
-    ParseMode,
-)
-
-from data_model import *
+from data_model import (
+    Game, League, User, engine, games_table, leagues_table, users_table)
 from functions import get_current_leagues, get_games_current_league
-from sqlalchemy.orm import sessionmaker, mapper
-
-
-""" Emoji """
-trophy = emoji.emojize(":trophy:")
-magnifying_glass = emoji.emojize(":magnifying_glass_tilted_right:")
-open_book = emoji.emojize(":open_book:")
-party_popper = emoji.emojize(":party_popper:")
+from sqlalchemy.orm import mapper, sessionmaker
 
 """ Mapper """
 mapper(User, users_table)
@@ -35,17 +23,9 @@ mapper(User, users_table)
 
 """ Клавиатуры """
 reply_start_kb = [
-    [
-        InlineKeyboardButton(
-            f"ТУРНИРЫ {trophy}", switch_inline_query_current_chat="current"
-        )
-    ],
-    [
-        InlineKeyboardButton(
-            f"НАЙТИ {magnifying_glass}", switch_inline_query_current_chat="search"
-        )
-    ],
-    [InlineKeyboardButton(f"ПОМОЩЬ {open_book}", callback_data="help")],
+    [InlineKeyboardButton(f"ТУРНИРЫ 🏆", switch_inline_query_current_chat="current")],
+    [InlineKeyboardButton(f"НАЙТИ 🔎", switch_inline_query_current_chat="")],
+    [InlineKeyboardButton(f"ПОМОЩЬ 📖", callback_data="help")],
 ]
 
 markup = InlineKeyboardMarkup(reply_start_kb)
@@ -53,14 +33,14 @@ markup = InlineKeyboardMarkup(reply_start_kb)
 
 def start(update, context):
     logging.info("Вызвана функция старт")
-    reply_text = "Привет! Мы рады, что ты с нами! " + party_popper + ""
+    reply_text = "Привет! Мы рады, что ты с нами! 🎉"
     update.message.reply_text(reply_text, reply_markup=markup)
 
 
-def help(update, context):
+def help_me(update, context):
     logging.info("Вызвана функция help")
     update.effective_message.reply_text(
-        "Мы умеем: /help - показать справку, @'Bot_Name' + leage_name - найти турнир"
+        "Мы умеем: /help - показать справку, @'Bot_Name' + league_name - найти турнир"
     )
 
 
@@ -72,12 +52,13 @@ def get_tournament_info(update, context):
         reply_games_kb.append(
             [
                 InlineKeyboardButton(
-                    f"🔹{game[1]} ⚔️ 🔹{game[2]}   Format: {game[3]}  🕔 {game[4]}",
-                    callback_data=game[5],
+                    f'🔹{game[1]} ⚔️ 🔹{game[2]} 🎲 {game[3]}  🕔 {game[4].strftime("%Y-%m-%d %H:%M")}',
+                    callback_data="subscribe",
                     parse_mode=ParseMode.MARKDOWN,
                 )
             ]
         )
+    context.user_data["game_id"] = game[5]
     markup = InlineKeyboardMarkup(reply_games_kb)
     update.message.reply_text(
         f'*{message.split("по ")[1]}*',
@@ -90,7 +71,7 @@ def leagues_search(query):
     leagues_list = get_current_leagues()
     result = []
     for league in leagues_list:
-        if query in league["name"]:
+        if query in league[0]:
             result.append(league)
     return result
 
@@ -113,9 +94,9 @@ def inlinequery(update, context):
                 )
             )
         update.inline_query.answer(result)
-    elif query == "search":
+    else:
         result = []
-        user_text = update.message.text.split()[1:].strip()
+        user_text = update.inline_query.query
         result_search = leagues_search(user_text)
         for item in result_search:
             result.append(
@@ -130,6 +111,7 @@ def inlinequery(update, context):
                 )
             )
         update.inline_query.answer(result)
+
 
 """
 def get_or_create_user(update, context):
@@ -150,35 +132,48 @@ def get_or_create_user(update, context):
 def ikb_subscribe(update, context):
     ikb_query = update.callback_query
     print(update.message)
-    user_choice = ikb_query.data
     Session = sessionmaker(bind=engine)
     session = Session()
-    game = session.query(Game).filter(Game.game_id == user_choice).first()
+    game = (
+        session.query(Game).filter(Game.game_id == context.user_data["game_id"]).first()
+    )
     text = f"Вы подписались на уведомления по игре {game.team1} vs {game.team2}"
-    context.bot.edit_message_text(text=text, chat_id=ikb_query.message.chat.id,
-            message_id=ikb_query.message.message_id)
-    ikb_newUser = User(int(ikb_query.message.chat.id), int(ikb_query.data))
+    context.bot.edit_message_text(
+        text=text,
+        chat_id=ikb_query.message.chat.id,
+        message_id=ikb_query.message.message_id,
+    )
+    ikb_newUser = User(int(ikb_query.message.chat.id), context.user_data["game_id"])
     session.add(ikb_newUser)
     session.commit()
     get_game_start_twitch(context)
 
 
 def callback_alarm(context, chat_id, team1, team2, twitch_channel):
-    context.bot.send_message(chat_id=chat_id, text=f'Скоро начинается игра {team1} vs {team2} на канале https://www.twitch.tv/{twitch_channel}')
+    context.bot.send_message(
+        chat_id=chat_id,
+        text=f"Скоро начинается игра {team1} vs {team2} на канале https://www.twitch.tv/{twitch_channel}",
+    )
 
 
-# вызов из базы юзера с подпиской, сравнение с games и получение времени 
+# вызов из базы юзера с подпиской, сравнение с games и получение времени
 # начала игры + ссылка на твич канал
 def get_game_start_twitch(context):
     Session = sessionmaker(bind=engine)
     session = Session()
-    notification_30 = datetime.now() + timedelta(hours=5) #когда будет готово удалить
-    print(notification_30)    
-    for game_id, start_time, team1, team2, twitch_channel in session.query(Game.game_id, Game.start_time, Game.team1, Game.team2, Game.twitch_channel).filter(Game.start_time <= notification_30, Game.start_time >= datetime.now()):
+    notification_30 = datetime.now() + timedelta(hours=5)  # когда будет готово удалить
+    print(notification_30)
+    for game_id, start_time, team1, team2, twitch_channel in session.query(
+        Game.game_id, Game.start_time, Game.team1, Game.team2, Game.twitch_channel
+    ).filter(Game.start_time <= notification_30, Game.start_time >= datetime.now()):
         if game_id:
-            for user_id, game_id in session.query(User.user_id, User.game_id).filter(User.game_id == game_id):
-                game_timer = int((start_time - datetime.now()).total_seconds())                
-                context.job_queue.run_once(callback_alarm(context, user_id, team1, team2, twitch_channel), 5)                    
+            for user_id, game_id in session.query(User.user_id, User.game_id).filter(
+                User.game_id == game_id
+            ):
+                game_timer = int((start_time - datetime.now()).total_seconds())
+                context.job_queue.run_once(
+                    callback_alarm(context, user_id, team1, team2, twitch_channel), 5
+                )
     session.commit()
 
 

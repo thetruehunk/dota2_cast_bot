@@ -1,3 +1,7 @@
+#############################
+#   whis support functions  #
+#############################
+
 import json
 import logging
 import urllib.parse
@@ -5,6 +9,7 @@ from datetime import datetime
 
 import pyjson5
 import requests
+from bs4 import BeautifulSoup
 from liquipediapy import dota
 
 from data_model import Game, League, engine, games_table, leagues_table
@@ -92,9 +97,10 @@ def get_games_current_league(league):
     Session = sessionmaker(bind=engine)
     session = Session()
     games = []
-    for game in session.query(Game).filter(
-        Game.league_name == text(league)
-    ):  # сортировка по дате
+    short_name = (
+        session.query(League.short_name).filter(League.name == text(league)).scalar()
+    )
+    for game in session.query(Game).filter(Game.league_name == short_name):
         games.append(
             (
                 game.league_name,
@@ -129,29 +135,19 @@ def add_leagues_to_database(leagues_by_tier):
                         (get_league_id(league["name"].strip())),
                         league["tier"],
                         league["name"].strip(),
+                        league["short_name"],
+                        league["baner_url"],
                         league["icon"],
                         league["dates"],
                         league["prize_pool"],
                         league["teams"],
                         league["host_location"],
                         league["event_location"],
-                        str(league["links"]),
+                        str(league["links"]) if league["links"] else None,
                     )
                     session.add(new_league)
                 except KeyError:
-                    new_league = League(
-                        (get_league_id(league["name"].strip())),
-                        league["tier"],
-                        league["name"].strip(),
-                        league["icon"],
-                        league["dates"],
-                        league["prize_pool"],
-                        league["teams"],
-                        league["host_location"],
-                        league["event_location"],
-                        None,
-                    )
-                    session.add(new_league)
+                    logging.warning("Can't create object for league")
             session.commit()
 
 
