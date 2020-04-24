@@ -19,7 +19,7 @@ from functions import sync_current_leagues, sync_game_current_league
 from handlers import (
     get_game_start_twitch,
     get_tournament_info,
-    help,
+    help_me,
     ikb_subscribe,
     inlinequery,
     set_alarm,
@@ -27,7 +27,6 @@ from handlers import (
 )
 
 from settings import PROXY, TOKEN
-from sqlalchemy.orm import mapper
 
 logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s",
@@ -51,24 +50,23 @@ def main():
     # bot.job_queue.run_repeating(send_updates, 5)
 
     # Ставим в очередь задачи по синхронизации БД
-    # bot.job_queue.run_repeating(sync_current_leagues, 3600)
-    # bot.job_queue.run_repeating(sync_game_current_league, 3600)
+    # bot.job_queue.run_repeating(sync_current_leagues(), 20)
+    # bot.job_queue.run_repeating(sync_game_current_league(), 120)
 
     # выполняем синхронизацию БД с API
-    #sync_current_leagues()
-    #sync_game_current_league()
+    # sync_current_leagues()
+    # sync_game_current_league()
     # Делаем запись в лог
     logging.info("bot запускается")
 
     # Создаем обработчики
     dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(CommandHandler("help", help))
+    dp.add_handler(CommandHandler("help", help_me))
     dp.add_handler(
         MessageHandler(Filters.regex("OK, ищу информацию по (.*)"), get_tournament_info)
     )
-    dp.add_handler(CallbackQueryHandler(ikb_subscribe))
-    # dp.add_handler(CallbackQueryHandler(subscribe, "subscribe"))
-    # dp.add_handler(CallbackQueryHandler(help, "help"))
+    dp.add_handler(CallbackQueryHandler(ikb_subscribe, pattern="subscribe"))
+    dp.add_handler(CallbackQueryHandler(help_me, pattern="help"))
     dp.add_handler(InlineQueryHandler(inlinequery))
     dp.add_handler(
         CommandHandler("alarm", set_alarm, pass_args=True, pass_job_queue=True)
