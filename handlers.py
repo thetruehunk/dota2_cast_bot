@@ -42,7 +42,7 @@ reply_start_kb = [
     ],
     [
         InlineKeyboardButton(
-            f"НАЙТИ {magnifying_glass}", switch_inline_query_current_chat="search"
+            f"НАЙТИ {magnifying_glass}", switch_inline_query_current_chat=""
         )
     ],
     [InlineKeyboardButton(f"ПОМОЩЬ {open_book}", callback_data="help")],
@@ -90,7 +90,8 @@ def leagues_search(query):
     leagues_list = get_current_leagues()
     result = []
     for league in leagues_list:
-        if query in league["name"]:
+        if query in league[0]:
+            print(league[0])
             result.append(league)
     return result
 
@@ -113,10 +114,12 @@ def inlinequery(update, context):
                 )
             )
         update.inline_query.answer(result)
-    elif query == "search":
+    else:
         result = []
-        user_text = update.message.text.split()[1:].strip()
+        user_text = update.inline_query.query
+        print(update.inline_query.query)
         result_search = leagues_search(user_text)
+        print(leagues_search(user_text))
         for item in result_search:
             result.append(
                 InlineQueryResultArticle(
@@ -130,20 +133,6 @@ def inlinequery(update, context):
                 )
             )
         update.inline_query.answer(result)
-
-"""
-def get_or_create_user(update, context):
-    mapper(User, users_table)
-    Session = sessionmaker(blind=engine)
-    session = Session()
-    user_id = update.message.chat_id
-    user_json = pyjson5.loads(str(user))
-    for item in user_json:
-        my_data = User(item["user_id"], item["game_id"],)
-    session.add(my_data)
-    session.commit()
-
-"""
 
 
 # подписка на игру
@@ -182,10 +171,12 @@ def get_game_start_twitch(context):
     session.commit()
 
 
+# TODO:
 # переделать на увдомления по подписке
-"""def send_updates(context, job):
-        subscrubeJob = updater.job_queue
-    context.job_morning = subscrubeJob.run_once()"""
+# def send_updates(context, job):
+#         subscrubeJob = updater.job_queue
+#     context.job_morning = subscrubeJob.run_once()
+
 
 
 def set_alarm(update, context):
