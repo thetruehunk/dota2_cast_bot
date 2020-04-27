@@ -65,8 +65,7 @@ def main():
     dp.add_handler(
         MessageHandler(Filters.regex("OK, ищу информацию по (.*)"), get_tournament_info)
     )
-    dp.add_handler(CallbackQueryHandler(ikb_subscribe, pattern="subscribe"))
-    dp.add_handler(CallbackQueryHandler(help_me, pattern="help"))
+    dp.add_handler(CallbackQueryHandler(ikb_subscribe))
     dp.add_handler(InlineQueryHandler(inlinequery))
     dp.add_handler(
         CommandHandler("alarm", set_alarm, pass_args=True, pass_job_queue=True)
