@@ -58,6 +58,14 @@ def get_league_id(league):
         return None
 
 
+def get_league_baner(league):
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    baner_url = session.query(League.baner_url).filter(League.name == text(league)).scalar()
+    session.commit()
+    return baner_url
+
+
 def check_end_league(period):
     now = datetime.now()
     try:
@@ -100,7 +108,7 @@ def get_games_current_league(league):
     short_name = (
         session.query(League.short_name).filter(League.name == text(league)).scalar()
     )
-    for game in session.query(Game).filter(Game.league_name == short_name):
+    for game in session.query(Game).filter(Game.league_name == short_name, Game.start_time >= datetime.now()):
         games.append(
             (
                 game.league_name,

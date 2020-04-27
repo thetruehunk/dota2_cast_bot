@@ -3,7 +3,6 @@
 #######################################
 
 import logging
-import time
 from datetime import datetime, timedelta
 from time import strftime
 from uuid import uuid4
@@ -14,7 +13,7 @@ from telegram import (InlineKeyboardButton, InlineKeyboardMarkup,
 
 from data_model import (
     Game, League, User, engine, games_table, leagues_table, users_table)
-from functions import get_current_leagues, get_games_current_league
+from functions import get_current_leagues, get_games_current_league, get_league_baner
 from sqlalchemy.orm import mapper, sessionmaker
 
 """ Mapper """
@@ -25,7 +24,6 @@ mapper(User, users_table)
 reply_start_kb = [
     [InlineKeyboardButton(f"ТУРНИРЫ 🏆", switch_inline_query_current_chat="current")],
     [InlineKeyboardButton(f"НАЙТИ 🔎", switch_inline_query_current_chat="")],
-    [InlineKeyboardButton(f"ПОМОЩЬ 📖", callback_data="help")],
 ]
 
 markup = InlineKeyboardMarkup(reply_start_kb)
@@ -40,7 +38,13 @@ def start(update, context):
 def help_me(update, context):
     logging.info("Вызвана функция help")
     update.effective_message.reply_text(
-        "Мы умеем: /help - показать справку, @'Bot_Name' + league_name - найти турнир"
+        """Это бот для отслеживания событий киберспортивной дисциплины - DOTA2
+С его помощью можно получить список текущих и предстоящих турниров и игр,
+для каждой игры можно подписаться на уведомление о начале, получить доступ
+к видео или текстовой трансляции.Команда /start - вызывает клавиатуру, 
+отображающую текущие турниры и предоставляющую поиск по названию.
+Для турнира будет выведен список игр, нажав на кнопку с игрой можно подписаться
+на трансляцию. За некоторое время до начала игры вам придёт уведомление."""
     )
 
 
@@ -52,19 +56,25 @@ def get_tournament_info(update, context):
         reply_games_kb.append(
             [
                 InlineKeyboardButton(
-                    f'🔹{game[1]} ⚔️ 🔹{game[2]} 🎲 {game[3]}  🕔 {game[4].strftime("%Y-%m-%d %H:%M")}',
-                    callback_data="subscribe",
+                    f'🔹{game[1]} ⚔️ 🔹{game[2]} 🎲{game[3]}  🕔{game[4].strftime("%b-%d %H:%M")}',
+                    callback_data=game[5],
                     parse_mode=ParseMode.MARKDOWN,
                 )
             ]
         )
-    context.user_data["game_id"] = game[5]
     markup = InlineKeyboardMarkup(reply_games_kb)
-    update.message.reply_text(
-        f'*{message.split("по ")[1]}*',
-        reply_markup=markup,
-        parse_mode=ParseMode.MARKDOWN,
-    )
+    baner_url = get_league_baner(message.split("по ")[1])
+    if reply_games_kb:
+        update.message.reply_text(
+            f'[{message.split("по ")[1]}]({baner_url})',
+            reply_markup=markup,
+            parse_mode=ParseMode.MARKDOWN,
+            )
+    else:
+        update.message.reply_text(
+            f'*Игр для {message.split("по ")[1]} нет*',
+            parse_mode=ParseMode.MARKDOWN,
+            )
 
 
 def leagues_search(query):
@@ -131,19 +141,14 @@ def get_or_create_user(update, context):
 # подписка на игру
 def ikb_subscribe(update, context):
     ikb_query = update.callback_query
-    print(update.message)
+    user_choice = ikb_query.data
     Session = sessionmaker(bind=engine)
     session = Session()
-    game = (
-        session.query(Game).filter(Game.game_id == context.user_data["game_id"]).first()
-    )
+    game = session.query(Game).filter(Game.game_id == user_choice).first()
     text = f"Вы подписались на уведомления по игре {game.team1} vs {game.team2}"
-    context.bot.edit_message_text(
-        text=text,
-        chat_id=ikb_query.message.chat.id,
-        message_id=ikb_query.message.message_id,
-    )
-    ikb_newUser = User(int(ikb_query.message.chat.id), context.user_data["game_id"])
+    context.bot.edit_message_text(text=text, chat_id=ikb_query.message.chat.id,
+            message_id=ikb_query.message.message_id)
+    ikb_newUser = User(int(ikb_query.message.chat.id), int(ikb_query.data))
     session.add(ikb_newUser)
     session.commit()
     get_game_start_twitch(context)
