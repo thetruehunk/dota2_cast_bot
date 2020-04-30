@@ -50,8 +50,8 @@ def main():
     # bot.job_queue.run_repeating(send_updates, 5)
 
     # Ставим в очередь задачи по синхронизации БД
-    # bot.job_queue.run_repeating(sync_current_leagues(), 20)
-    # bot.job_queue.run_repeating(sync_game_current_league(), 120)
+    # bot.job_queue.run_repeating(sync_current_leagues(), 10)
+    # bot.job_queue.run_repeating(sync_game_current_league(), 10)
 
     # выполняем синхронизацию БД с API
     # sync_current_leagues()
