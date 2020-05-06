@@ -44,16 +44,9 @@ def main():
     # Создаем диспетчер
     dp = bot.dispatcher
 
-    bot.job_queue.run_once(get_game_start_twitch, 2)
-
-    # bot.job_queue.run_repeating(send_updates, 5)
-    # bot.job_queue.run_repeating(send_updates, 5)
-
     # Ставим в очередь задачи по синхронизации БД
-    # bot.job_queue.run_repeating(sync_current_leagues(), 10)
-    # bot.job_queue.run_repeating(sync_game_current_league(), 10)
-
-    # выполняем синхронизацию БД с API
+    # bot.job_queue.run_repeating(sync_current_leagues, 10)
+    # bot.job_queue.run_repeating(sync_game_current_league, 10)
     # sync_current_leagues()
     # sync_game_current_league()
     # Делаем запись в лог
