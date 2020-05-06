@@ -1,5 +1,5 @@
 #############################
-#   whis support functions  #
+#      support functions    #
 #############################
 
 import json

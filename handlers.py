@@ -1,5 +1,5 @@
 #######################################
-#   whis core functions for handlers  #
+#      core functions for handlers    #
 #######################################
 
 import logging
@@ -56,7 +56,7 @@ def get_tournament_info(update, context):
         reply_games_kb.append(
             [
                 InlineKeyboardButton(
-                    f'🔹{game[1]} ⚔️ 🔹{game[2]} 🎲{game[3]}  🕔{game[4].strftime("%b-%d %H:%M")}',
+                    f'🔹{game[1]} ⚔️ 🔹{game[2]}  🕔{game[4].strftime("%b-%d %H:%M")}',
                     callback_data=game[5],
                     parse_mode=ParseMode.MARKDOWN,
                 )
@@ -65,11 +65,12 @@ def get_tournament_info(update, context):
     markup = InlineKeyboardMarkup(reply_games_kb)
     baner_url = get_league_baner(message.split("по ")[1])
     if reply_games_kb:
-        update.message.reply_text(
-            f'[{message.split("по ")[1]}]({baner_url})',
+        context.bot.send_photo(
+            chat_id=update.message.chat_id,
+            photo=baner_url,
+            caption=f'*{message.split("по ")[1]}*',
             reply_markup=markup,
-            parse_mode=ParseMode.MARKDOWN,
-            )
+            parse_mode=ParseMode.MARKDOWN)
     else:
         update.message.reply_text(
             f'*Игр для {message.split("по ")[1]} нет*',
@@ -116,26 +117,11 @@ def inlinequery(update, context):
                     description=f"Period: {item[3]}, prize: ${item[2]}",
                     thumb_url=item[1],
                     input_message_content=InputTextMessageContent(
-                        "OK, нужно доработать"
+                        f"OK, ищу информацию по '{item[0].strip()}'"
                     ),
                 )
             )
         update.inline_query.answer(result)
-
-
-"""
-def get_or_create_user(update, context):
-    mapper(User, users_table)
-    Session = sessionmaker(blind=engine)
-    session = Session()
-    user_id = update.message.chat_id
-    user_json = pyjson5.loads(str(user))
-    for item in user_json:
-        my_data = User(item["user_id"], item["game_id"],)
-    session.add(my_data)
-    session.commit()
-
-"""
 
 
 # подписка на игру
@@ -146,8 +132,7 @@ def ikb_subscribe(update, context):
     session = Session()
     game = session.query(Game).filter(Game.game_id == user_choice).first()
     text = f"Вы подписались на уведомления по игре {game.team1} vs {game.team2}"
-    context.bot.edit_message_text(text=text, chat_id=ikb_query.message.chat.id,
-            message_id=ikb_query.message.message_id)
+    context.bot.send_message(text=text, chat_id=ikb_query.message.chat.id)
     ikb_newUser = User(int(ikb_query.message.chat.id), int(ikb_query.data))
     session.add(ikb_newUser)
     session.commit()
@@ -166,7 +151,7 @@ def callback_alarm(context, chat_id, team1, team2, twitch_channel):
 def get_game_start_twitch(context):
     Session = sessionmaker(bind=engine)
     session = Session()
-    notification_30 = datetime.now() + timedelta(hours=5)  # когда будет готово удалить
+    notification_30 = datetime.now() + timedelta(hours=60)  # когда будет готово удалить
     print(notification_30)
     for game_id, start_time, team1, team2, twitch_channel in session.query(
         Game.game_id, Game.start_time, Game.team1, Game.team2, Game.twitch_channel
