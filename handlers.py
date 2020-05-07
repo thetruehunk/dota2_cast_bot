@@ -7,12 +7,24 @@ from datetime import datetime, timedelta
 from time import strftime
 from uuid import uuid4
 
-from telegram import (InlineKeyboardButton, InlineKeyboardMarkup,
-                      InlineQueryResultArticle, InputTextMessageContent,
-                      KeyboardButton, ParseMode)
+from telegram import (
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    InlineQueryResultArticle,
+    InputTextMessageContent,
+    KeyboardButton,
+    ParseMode,
+)
 
 from data_model import (
-    Game, League, User, engine, games_table, leagues_table, users_table)
+    Game,
+    League,
+    User,
+    engine,
+    games_table,
+    leagues_table,
+    users_table,
+)
 from functions import get_current_leagues, get_games_current_league, get_league_baner
 from sqlalchemy.orm import mapper, sessionmaker
 
@@ -51,7 +63,7 @@ def help_me(update, context):
 def get_tournament_info(update, context):
     message = update.message.text
     reply_games_kb = []
-    games = get_games_current_league(message.split("по ")[1])
+    games = get_games_current_league(message.split("about ")[1])
     for game in games:
         reply_games_kb.append(
             [
@@ -63,19 +75,19 @@ def get_tournament_info(update, context):
             ]
         )
     markup = InlineKeyboardMarkup(reply_games_kb)
-    baner_url = get_league_baner(message.split("по ")[1])
+    baner_url = get_league_baner(message.split("about ")[1])
     if reply_games_kb:
         context.bot.send_photo(
             chat_id=update.message.chat_id,
             photo=baner_url,
-            caption=f'*{message.split("по ")[1]}*',
+            caption=f'*{message.split("about ")[1]}*',
             reply_markup=markup,
-            parse_mode=ParseMode.MARKDOWN)
+            parse_mode=ParseMode.MARKDOWN,
+        )
     else:
         update.message.reply_text(
-            f'*Игр для {message.split("по ")[1]} нет*',
-            parse_mode=ParseMode.MARKDOWN,
-            )
+            f'*No found games for {message.split("about ")[1]}*', parse_mode=ParseMode.MARKDOWN,
+        )
 
 
 def leagues_search(query):
@@ -100,7 +112,7 @@ def inlinequery(update, context):
                     description=f"Period: {item[3]}, prize: ${item[2]}",
                     thumb_url=item[1],
                     input_message_content=InputTextMessageContent(
-                        f"OK, ищу информацию по '{item[0].strip()}'"
+                        f"OK, search informations about '{item[0].strip()}'"
                     ),
                 )
             )
@@ -117,7 +129,7 @@ def inlinequery(update, context):
                     description=f"Period: {item[3]}, prize: ${item[2]}",
                     thumb_url=item[1],
                     input_message_content=InputTextMessageContent(
-                        f"OK, ищу информацию по '{item[0].strip()}'"
+                        f"OK, search informations about '{item[0].strip()}'"
                     ),
                 )
             )
