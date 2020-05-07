@@ -159,7 +159,7 @@ def add_leagues_to_database(leagues_by_tier):
             session.commit()
 
 
-def sync_current_leagues():
+def sync_current_leagues(context):
     dota_liquipedi = dota("appname")
     try:
         tournaments = dota_liquipedi.get_tournaments()
@@ -169,7 +169,7 @@ def sync_current_leagues():
         logging.warning("Not found data in API")
 
 
-def sync_game_current_league():
+def sync_game_current_league(context):
     dota_liquipedi = dota("appname")
     Session = sessionmaker(bind=engine)
     session = Session()

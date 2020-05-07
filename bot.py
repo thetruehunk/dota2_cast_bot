@@ -1,6 +1,4 @@
-"""
-Здесь находится все для инициализации и старта  бота
-"""
+""" bot initialization """
 
 import logging
 
@@ -34,36 +32,33 @@ logging.basicConfig(
     filename="bot.log",
 )
 
-subscribers = set()
-
 
 def main():
-    # Создаем бота
+    # creating bot
     bot = Updater(TOKEN, use_context=True, request_kwargs=PROXY)
-    
-    # Создаем диспетчер
+
+    # creating dispatcher
     dp = bot.dispatcher
 
-    # Ставим в очередь задачи по синхронизации БД
-    # bot.job_queue.run_repeating(sync_current_leagues, 10)
-    # bot.job_queue.run_repeating(sync_game_current_league, 10)
-    # sync_current_leagues()
-    # sync_game_current_league()
-    # Делаем запись в лог
-    logging.info("bot запускается")
+    # creating job for regular sync database
+    bot.job_queue.run_repeating(callback=sync_current_leagues, interval=3600, first=10)
+    bot.job_queue.run_repeating(callback=sync_game_current_league, interval=3600, first=10)
 
-    # Создаем обработчики
+    # creating write in log about start bot
+    logging.info("Bot is run")
+
+    # creating handlers
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("help", help_me))
     dp.add_handler(
-        MessageHandler(Filters.regex("OK, ищу информацию по (.*)"), get_tournament_info)
+        MessageHandler(Filters.regex("OK, search informations about (.*)"), get_tournament_info)
     )
     dp.add_handler(CallbackQueryHandler(ikb_subscribe))
     dp.add_handler(InlineQueryHandler(inlinequery))
     dp.add_handler(
         CommandHandler("alarm", set_alarm, pass_args=True, pass_job_queue=True)
     )
-    # Запускаем бота
+    # run bot
     bot.start_polling()
     bot.idle()
 
