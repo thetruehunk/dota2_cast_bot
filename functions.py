@@ -20,15 +20,6 @@ mapper(Game, games_table)
 mapper(League, leagues_table)
 
 
-def get_leagues():
-    # os.environ['STEAM_API_KEY']
-    # os.environ['TOKEN']
-    stratz_req = requests.get("https://api.stratz.com/api/v1/league")
-    stratz_data = json.loads(stratz_req.text)
-    stratz_data.sort(key=lambda z: z["endDateTime"])
-    return stratz_data
-
-
 def get_current_leagues():
     Session = sessionmaker(bind=engine)
     session = Session()
@@ -40,6 +31,27 @@ def get_current_leagues():
             )
     session.commit()
     return leagues
+
+
+def get_league_info(league):
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    responce = (
+        session.query(
+            League.name,
+            League.tier,
+            League.baner_url,
+            League.dates,
+            League.prize_pool,
+            League.host_location,
+            League.event_location,
+            League.links,
+        )
+        .filter(League.name == text(league))
+        .all()[0]
+    )
+    session.commit()
+    return responce
 
 
 def get_league_id(league):
@@ -56,14 +68,6 @@ def get_league_id(league):
     except KeyError:
         logging.info(f"Отсутствуют данные по: {league}")
         return None
-
-
-def get_league_baner(league):
-    Session = sessionmaker(bind=engine)
-    session = Session()
-    baner_url = session.query(League.baner_url).filter(League.name == text(league)).scalar()
-    session.commit()
-    return baner_url
 
 
 def check_end_league(period):
@@ -108,7 +112,9 @@ def get_games_current_league(league):
     short_name = (
         session.query(League.short_name).filter(League.name == text(league)).scalar()
     )
-    for game in session.query(Game).filter(Game.league_name == short_name, Game.start_time >= datetime.now()):
+    for game in session.query(Game).filter(
+        Game.league_name == short_name, Game.start_time >= datetime.now()
+    ):
         games.append(
             (
                 game.league_name,
@@ -123,17 +129,29 @@ def get_games_current_league(league):
     return games
 
 
+def get_game_info(game_id):
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    responce = (
+        session.query(
+            Game.league_name,
+            Game.team1,
+            Game.team2,
+            Game.game_format,
+            Game.start_time,
+            Game.twitch_channel,
+        )
+        .filter(Game.game_id == game_id)
+        .all()[0]
+    )
+    session.commit()
+    return  responce
+
 def add_leagues_to_database(leagues_by_tier):
     Session = sessionmaker(bind=engine)
     session = Session()
     for league in leagues_by_tier:
-        if (
-            session.query(League)
-            .filter(
-                League.name == league["name"].strip(), League.dates == league["dates"]
-            )
-            .scalar()
-        ):
+        if session.query(League).filter(League.name == league["name"].strip()).scalar():
             logging.info("Такой турнир уже существует")
         else:
             if check_end_league(league["dates"]):

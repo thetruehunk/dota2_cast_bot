@@ -25,26 +25,24 @@ from data_model import (
     leagues_table,
     users_table,
 )
-from functions import get_current_leagues, get_games_current_league, get_league_baner
+from functions import (
+    get_current_leagues,
+    get_games_current_league,
+    get_league_info,
+    get_game_info,
+)
+from keyboards import start_kb_markup, subscribe_kb_markup
 from sqlalchemy.orm import mapper, sessionmaker
+from sqlalchemy.sql import text
 
 """ Mapper """
 mapper(User, users_table)
 
 
-""" Клавиатуры """
-reply_start_kb = [
-    [InlineKeyboardButton(f"ТУРНИРЫ 🏆", switch_inline_query_current_chat="current")],
-    [InlineKeyboardButton(f"НАЙТИ 🔎", switch_inline_query_current_chat="")],
-]
-
-markup = InlineKeyboardMarkup(reply_start_kb)
-
-
 def start(update, context):
     logging.info("Вызвана функция старт")
     reply_text = "Привет! Мы рады, что ты с нами! 🎉"
-    update.message.reply_text(reply_text, reply_markup=markup)
+    update.message.reply_text(reply_text, reply_markup=start_kb_markup)
 
 
 def help_me(update, context):
@@ -60,10 +58,10 @@ def help_me(update, context):
     )
 
 
-def get_tournament_info(update, context):
-    message = update.message.text
+def view_league_info(update, context):
+    league_name = update.message.text.split("about ")[1]
     reply_games_kb = []
-    games = get_games_current_league(message.split("about ")[1])
+    games = get_games_current_league(league_name)
     for game in games:
         reply_games_kb.append(
             [
@@ -75,19 +73,60 @@ def get_tournament_info(update, context):
             ]
         )
     markup = InlineKeyboardMarkup(reply_games_kb)
-    baner_url = get_league_baner(message.split("about ")[1])
+    league_info = get_league_info(league_name)
+    link = (league_info[7].split(",")[0].strip("[}{'").split("': '"))
     if reply_games_kb:
         context.bot.send_photo(
             chat_id=update.message.chat_id,
-            photo=baner_url,
-            caption=f'*{message.split("about ")[1]}*',
+            photo=league_info[2],
+            caption=(
+                f'*{league_info[0]}*\n'
+                f'Tier: *{league_info[1]}*\n'
+                #f'Organizer: *{"Twitch account"}*\n'
+                f'Location📍: *{league_info[5]}*\n'
+                f'Dates📅: *{league_info[3]}*\n'
+                f'Prize pool💰: *{league_info[4]}$*\n'
+                f'Link🔗: {f"[{link[0]}]({link[1]})" if league_info[7] else None}\n'
+
+            ),
             reply_markup=markup,
             parse_mode=ParseMode.MARKDOWN,
         )
     else:
-        update.message.reply_text(
-            f'*No found games for {message.split("about ")[1]}*', parse_mode=ParseMode.MARKDOWN,
+        context.bot.send_photo(
+            chat_id=update.message.chat_id,
+            photo=league_info[2],
+            caption=(
+                f'*{league_info[0]}*\n'
+                f'Tier: *{league_info[1]}*\n'
+                #f'Organizer: *{"Twitch account"}*\n'
+                f'Location📍: *{league_info[5]}*\n'
+                f'Dates📅: *{league_info[3]}*\n'
+                f'Prize pool💰: *{league_info[4]}$*\n'
+                f'Link🔗: {f"[{link[0]}]({link[1]})" if league_info[7] else None}\n'
+                f'\n'
+                f'*No found games for:\n{league_info[0]}*'
+            ),
+            parse_mode=ParseMode.MARKDOWN,
         )
+
+
+def view_game_info(update, context):
+    game_id = update.callback_query.data
+    game_info = get_game_info(game_id)
+    context.bot.send_photo(
+        chat_id=update.callback_query.message.chat_id,
+        photo=open('VS.png', 'rb'),
+        caption=(
+            f'League🏆: *{game_info[0]}*\n'
+            f'Start time🕑: *{game_info[4]}*\n'
+            f'Game format🎲: *{game_info[3]}*\n'
+            f'Bookmaker odds📊: *1 : 4*\n'
+            f'{game_info[0]}, 📺 {"[translations](https://ya.ru)"}\n'
+            ),
+        reply_markup=subscribe_kb_markup,
+        parse_mode=ParseMode.MARKDOWN,
+    )
 
 
 def leagues_search(query):
@@ -109,10 +148,10 @@ def inlinequery(update, context):
                 InlineQueryResultArticle(
                     id=uuid4(),
                     title=item[0].strip(),
-                    description=f"Period: {item[3]}, prize: ${item[2]}",
+                    description=f'Period: {item[3]}, prize: ${item[2]}',
                     thumb_url=item[1],
                     input_message_content=InputTextMessageContent(
-                        f"OK, search informations about '{item[0].strip()}'"
+                        f'OK, search informations about "{item[0].strip()}"'
                     ),
                 )
             )
@@ -126,10 +165,10 @@ def inlinequery(update, context):
                 InlineQueryResultArticle(
                     id=uuid4(),
                     title=item[0],
-                    description=f"Period: {item[3]}, prize: ${item[2]}",
+                    description=f'Period: {item[3]}, prize: ${item[2]}',
                     thumb_url=item[1],
                     input_message_content=InputTextMessageContent(
-                        f"OK, search informations about '{item[0].strip()}'"
+                        f'OK, search informations about "{item[0].strip()}"'
                     ),
                 )
             )
@@ -154,7 +193,10 @@ def ikb_subscribe(update, context):
 def callback_alarm(context, chat_id, team1, team2, twitch_channel):
     context.bot.send_message(
         chat_id=chat_id,
-        text=f"Скоро начинается игра {team1} vs {team2} на канале https://www.twitch.tv/{twitch_channel}",
+        text=(
+            f"Скоро начинается игра {team1} vs {team2} на канале"
+            f" https://www.twitch.tv/{twitch_channel}"
+        ),
     )
 
 
