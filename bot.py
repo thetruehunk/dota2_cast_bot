@@ -15,15 +15,16 @@ from telegram.ext import messagequeue as mq
 
 from functions import sync_current_leagues, sync_game_current_league
 from handlers import (
+    get_game_info,
     get_game_start_twitch,
-    get_tournament_info,
+    view_league_info,
+    view_game_info,
     help_me,
     ikb_subscribe,
     inlinequery,
     set_alarm,
     start,
 )
-
 from settings import PROXY, TOKEN
 
 logging.basicConfig(
@@ -50,14 +51,10 @@ def main():
     # creating handlers
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("help", help_me))
-    dp.add_handler(
-        MessageHandler(Filters.regex("OK, search informations about (.*)"), get_tournament_info)
-    )
-    dp.add_handler(CallbackQueryHandler(ikb_subscribe))
+    dp.add_handler(MessageHandler(Filters.regex("OK, search informations about(.*)"), view_league_info))
+    dp.add_handler(CallbackQueryHandler(view_game_info))
     dp.add_handler(InlineQueryHandler(inlinequery))
-    dp.add_handler(
-        CommandHandler("alarm", set_alarm, pass_args=True, pass_job_queue=True)
-    )
+    dp.add_handler(CommandHandler("alarm", set_alarm, pass_args=True, pass_job_queue=True))
     # run bot
     bot.start_polling()
     bot.idle()
