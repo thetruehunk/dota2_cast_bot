@@ -16,6 +16,7 @@ from telegram import (
     ParseMode,
 )
 
+from bet import get_bet_koef
 from data_model import (
     Game,
     League,
@@ -121,7 +122,7 @@ def view_game_info(update, context):
             f'League🏆: *{game_info[0]}*\n'
             f'Start time🕑: *{game_info[4]}*\n'
             f'Game format🎲: *{game_info[3]}*\n'
-            f'Bookmaker odds📊: *1 : 4*\n'
+            f'Bookmaker odds📊: *{get_bet_koef(game_info[1], game_info[2], game_info[4])}*\n'
             f'{game_info[0]}, 📺 {"[translations](https://ya.ru)"}\n'
             ),
         reply_markup=subscribe_kb_markup,

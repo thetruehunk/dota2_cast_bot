@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 
 import requests
 
@@ -13,13 +14,15 @@ def get_bet_koef(team1, team2, start_date):
                     element["home_team_name"] == team1
                     and element["away_team_name"] == team2
                 )
-                and element["start_date"] >= start_date
+                and datetime.strptime(element["start_date"], "%Y-%m-%dT%H:%M:%S.000Z")
+                >= start_date
             ) or (
                 (
                     element["home_team_name"] == team2
                     and element["away_team_name"] == team1
                 )
-                and element["start_date"] >= start_date
+                and datetime.strptime(element["start_date"], "%Y-%m-%dT%H:%M:%S.000Z")
+                >= start_date
             ):
                 for bet in element["odds"]:
                     if bet["bookmaker_name"] == "Parimatch":
