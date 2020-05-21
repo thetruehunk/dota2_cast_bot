@@ -1,4 +1,4 @@
-[![Bintray](https://img.shields.io/badge/python-v3.7-blue)]() [![Bintray](https://img.shields.io/badge/code%20style-black-black)]()
+[![Bintray](https://img.shields.io/badge/python-v3.6|v3.7|v3.8-blue)]() [![Bintray](https://img.shields.io/badge/code%20style-black-black)]() <br/>
 #infobot_dota2
 ___
 <h3>Описание</h3>
