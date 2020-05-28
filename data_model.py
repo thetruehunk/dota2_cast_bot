@@ -10,7 +10,7 @@ from sqlalchemy import Table, Column, Integer, String, Binary, DateTime, MetaDat
 # получаем путь к текущему каталогу
 basedir = os.path.abspath(os.path.dirname(__file__))
 # подключаемся к БД
-engine = create_engine("sqlite:///" + os.path.join(basedir, "dota.db3"), echo=True,)
+engine = create_engine("sqlite:///" + os.path.join(basedir, "dota.db3"), echo=False,)
 
 metadata = MetaData()
 # описываем структуру БД

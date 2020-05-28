@@ -9,8 +9,10 @@ reply_start_kb = [
 ]
 
 reply_subscribe_kb = [
-    [InlineKeyboardButton(f"text stream", switch_inline_query_current_chat='123')],
-    [InlineKeyboardButton(f"video stream", switch_inline_query_current_chat="13")],
+    [InlineKeyboardButton(f"text stream",
+                          callback_data='subscribe_to_text_stream')],
+    [InlineKeyboardButton(f"video stream",
+                          callback_data='subscribe_to_video_stream')],
     [InlineKeyboardButton(f"back", switch_inline_query_current_chat="13")],
 ]
 

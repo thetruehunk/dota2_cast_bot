@@ -32,7 +32,7 @@ from functions import (
     get_league_info,
     get_game_info,
 )
-from keyboards import start_kb_markup, subscribe_kb_markup
+from keyboards import start_kb_markup
 from sqlalchemy.orm import mapper, sessionmaker
 from sqlalchemy.sql import text
 
@@ -41,13 +41,13 @@ mapper(User, users_table)
 
 
 def start(update, context):
-    logging.info("Вызвана функция старт")
-    reply_text = "Привет! Мы рады, что ты с нами! 🎉"
+    logging.info("Start function called")
+    reply_text = "Hello! Choose a league or use the search! 🎉"
     update.message.reply_text(reply_text, reply_markup=start_kb_markup)
 
 
 def help_me(update, context):
-    logging.info("Вызвана функция help")
+    logging.info("Help function called")
     update.effective_message.reply_text(
         """Это бот для отслеживания событий киберспортивной дисциплины - DOTA2
 С его помощью можно получить список текущих и предстоящих турниров и игр,
@@ -68,63 +68,54 @@ def view_league_info(update, context):
             [
                 InlineKeyboardButton(
                     f'🔹{game[1]} ⚔️ 🔹{game[2]}  🕔{game[4].strftime("%b-%d %H:%M")}',
-                    callback_data=game[5],
+                    callback_data=f"view_game_info {game[5]}",
                     parse_mode=ParseMode.MARKDOWN,
                 )
             ]
         )
     markup = InlineKeyboardMarkup(reply_games_kb)
     league_info = get_league_info(league_name)
-    link = (league_info[7].split(",")[0].strip("[}{'").split("': '"))
-    if reply_games_kb:
-        context.bot.send_photo(
-            chat_id=update.message.chat_id,
-            photo=league_info[2],
-            caption=(
-                f'*{league_info[0]}*\n'
-                f'Tier: *{league_info[1]}*\n'
-                #f'Organizer: *{"Twitch account"}*\n'
-                f'Location📍: *{league_info[5]}*\n'
-                f'Dates📅: *{league_info[3]}*\n'
-                f'Prize pool💰: *{league_info[4]}$*\n'
-                f'Link🔗: {f"[{link[0]}]({link[1]})" if league_info[7] else None}\n'
-
-            ),
-            reply_markup=markup,
-            parse_mode=ParseMode.MARKDOWN,
-        )
-    else:
-        context.bot.send_photo(
-            chat_id=update.message.chat_id,
-            photo=league_info[2],
-            caption=(
-                f'*{league_info[0]}*\n'
-                f'Tier: *{league_info[1]}*\n'
-                #f'Organizer: *{"Twitch account"}*\n'
-                f'Location📍: *{league_info[5]}*\n'
-                f'Dates📅: *{league_info[3]}*\n'
-                f'Prize pool💰: *{league_info[4]}$*\n'
-                f'Link🔗: {f"[{link[0]}]({link[1]})" if league_info[7] else None}\n'
-                f'\n'
-                f'*No found games for:\n{league_info[0]}*'
-            ),
-            parse_mode=ParseMode.MARKDOWN,
-        )
+    link = league_info[7].split(",")[0].strip("[}{'").split("': '")
+    context.bot.send_photo(
+        chat_id=update.message.chat_id,
+        photo=league_info[2],
+        caption=(
+            f"*{league_info[0]}*\n" f"Tier: *{league_info[1]}*\n"
+            # f'Organizer: *{"Twitch account"}*\n'
+            f"Location📍: *{league_info[5]}*\n"
+            f"Dates📅: *{league_info[3]}*\n"
+            f"Prize pool💰: *{league_info[4]}$*\n"
+            f'Link🔗: {f"[{link[0]}]({link[1]})" if league_info[7] else None}\n'
+            f"*No found games for:\n{league_info[0]}*"
+            if reply_games_kb
+            else f"*No found games for:\n{league_info[0]}*"
+        ),
+        reply_markup=markup if reply_games_kb else None,
+        parse_mode=ParseMode.MARKDOWN,
+    )
 
 
 def view_game_info(update, context):
-    game_id = update.callback_query.data
+    game_id = update.callback_query.data.split(" ")[1]
+    print(game_id)
     game_info = get_game_info(game_id)
+    reply_subscribe_kb = [
+        [InlineKeyboardButton(f"text stream", callback_data=f"subs_text {game_id}")],
+        [InlineKeyboardButton(f"video stream", callback_data=f"subs_video {game_id}")],
+        [InlineKeyboardButton(f"back", switch_inline_query_current_chat="13")],
+    ]
+    subscribe_kb_markup = InlineKeyboardMarkup(reply_subscribe_kb)
     context.bot.send_photo(
         chat_id=update.callback_query.message.chat_id,
-        photo=open('VS.png', 'rb'),
+        photo=open("VS.png", "rb"),
         caption=(
-            f'League🏆: *{game_info[0]}*\n'
-            f'Start time🕑: *{game_info[4]}*\n'
-            f'Game format🎲: *{game_info[3]}*\n'
-            f'Bookmaker odds📊: *{get_bet_koef(game_info[1], game_info[2], game_info[4])}*\n'
-            f'{game_info[0]}, 📺 {"[translations](https://ya.ru)"}\n'
-            ),
+            f"League🏆: *{game_info[0]}*\n"
+            f"Start time🕑: *{game_info[4]}*\n"
+            f"Game format🎲: *{game_info[3]}*\n"
+            f"Bookmaker odds📊: *{get_bet_koef(game_info[1], game_info[2], game_info[4])}*\n"
+            f"Bookmaker link🔗: [Parimatch](https://parimatch.ru)\n"
+            f"#dota2 #parimatch #team1 #team2\n"
+        ),
         reply_markup=subscribe_kb_markup,
         parse_mode=ParseMode.MARKDOWN,
     )
@@ -149,7 +140,7 @@ def inlinequery(update, context):
                 InlineQueryResultArticle(
                     id=uuid4(),
                     title=item[0].strip(),
-                    description=f'Period: {item[3]}, prize: ${item[2]}',
+                    description=f"Period: {item[3]}, prize: ${item[2]}",
                     thumb_url=item[1],
                     input_message_content=InputTextMessageContent(
                         f'OK, search informations about "{item[0].strip()}"'
@@ -166,7 +157,7 @@ def inlinequery(update, context):
                 InlineQueryResultArticle(
                     id=uuid4(),
                     title=item[0],
-                    description=f'Period: {item[3]}, prize: ${item[2]}',
+                    description=f"Period: {item[3]}, prize: ${item[2]}",
                     thumb_url=item[1],
                     input_message_content=InputTextMessageContent(
                         f'OK, search informations about "{item[0].strip()}"'
@@ -176,19 +167,21 @@ def inlinequery(update, context):
         update.inline_query.answer(result)
 
 
-# подписка на игру
-def ikb_subscribe(update, context):
-    ikb_query = update.callback_query
-    user_choice = ikb_query.data
+def subs_video(update, context):
+    game_id = update.callback_query.data.split(" ")[1]
     Session = sessionmaker(bind=engine)
     session = Session()
-    game = session.query(Game).filter(Game.game_id == user_choice).first()
+    game = session.query(Game).filter(Game.game_id == game_id).first()
     text = f"Вы подписались на уведомления по игре {game.team1} vs {game.team2}"
-    context.bot.send_message(text=text, chat_id=ikb_query.message.chat.id)
-    ikb_newUser = User(int(ikb_query.message.chat.id), int(ikb_query.data))
-    session.add(ikb_newUser)
+    context.bot.send_message(text=text, chat_id=update.callback_query.message.chat.id)
+    subscription = User(int(update.callback_query.message.chat.id), int(game_id))
+    session.add(subscription)
     session.commit()
     get_game_start_twitch(context)
+
+
+def subs_text(update, context):
+    print(update.callback_query.data)
 
 
 def callback_alarm(context, chat_id, team1, team2, twitch_channel):
@@ -228,13 +221,13 @@ def get_game_start_twitch(context):
     context.job_morning = subscrubeJob.run_once()"""
 
 
-def set_alarm(update, context):
-    try:
-        seconds = abs(int(context.args[0]))
-        context.job_queue.run_once(alarm, seconds, context=update.message.chat_id)
-    except (IndexError, ValueError):
-        update.message.reply_text("Введите число секунд после команды /alarm")
+# def set_alarm(update, context):
+#     try:
+#         seconds = abs(int(context.args[0]))
+#         context.job_queue.run_once(alarm, seconds, context=update.message.chat_id)
+#     except (IndexError, ValueError):
+#         update.message.reply_text("Введите число секунд после команды /alarm")
 
 
-def alarm(context):
-    context.bot.send_message(chat_id=context.job.context, text="Сработал будильник!")
+# def alarm(context):
+#     context.bot.send_message(chat_id=context.job.context, text="Сработал будильник!")
