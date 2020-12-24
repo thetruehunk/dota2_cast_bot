@@ -5,7 +5,7 @@ import logging
 from telegram.ext import (
     CallbackQueryHandler,
     CommandHandler,
-    Dispatcher,
+    # Dispatcher,
     Filters,
     InlineQueryHandler,
     MessageHandler,

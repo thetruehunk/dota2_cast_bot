@@ -21,15 +21,13 @@ leagues_table = Table(
     Column("league_id", Integer),
     Column("tier", String),
     Column("name", String),
-    Column("short_name", String),
-    Column("baner_url", String),
+    # Column("short_name", String),
+    # Column("baner_url", String),
     Column("icon_url", String),
     Column("dates", String),  # timezone=False
     Column("prize_pool", Integer),
     Column("teams", Integer),
     Column("host_location", String),
-    Column("event_location", String),
-    Column("links", String),
 )
 games_table = Table(
     "games",
@@ -59,28 +57,24 @@ class League(object):
         league_id,
         tier,
         name,
-        short_name,
-        baner_url,
+        #short_name,
+        #baner_url,
         icon_url,
         dates,
         prize_pool,
         teams,
         host_location,
-        event_location,
-        links,
     ):
         self.league_id = league_id
         self.tier = tier
         self.name = name
-        self.short_name = short_name
-        self.baner_url = baner_url
+        #self.short_name = short_name
+        #self.baner_url = baner_url
         self.icon_url = icon_url
         self.dates = dates
         self.prize_pool = prize_pool
         self.teams = teams
         self.host_location = host_location
-        self.event_location = event_location
-        self.links = links
 
 
 class Game(object):

@@ -27,6 +27,7 @@ from data_model import (
     users_table,
 )
 from functions import (
+    leagues_search,
     get_current_leagues,
     get_games_current_league,
     get_league_info,
@@ -75,20 +76,19 @@ def view_league_info(update, context):
         )
     markup = InlineKeyboardMarkup(reply_games_kb)
     league_info = get_league_info(league_name)
-    link = league_info[7].split(",")[0].strip("[}{'").split("': '")
+    # link = league_info[7].split(",")[0].strip("[}{'").split("': '")
     context.bot.send_photo(
         chat_id=update.message.chat_id,
         photo=league_info[2],
         caption=(
-            f"*{league_info[0]}*\n" f"Tier: *{league_info[1]}*\n"
+            # f"*{league_info[0]}*\n" 
+            # f"Tier: *{league_info[1]}*\n"
             # f'Organizer: *{"Twitch account"}*\n'
-            f"Location📍: *{league_info[5]}*\n"
-            f"Dates📅: *{league_info[3]}*\n"
-            f"Prize pool💰: *{league_info[4]}$*\n"
-            f'Link🔗: {f"[{link[0]}]({link[1]})" if league_info[7] else None}\n'
-            f"*No found games for:\n{league_info[0]}*"
-            if reply_games_kb
-            else f"*No found games for:\n{league_info[0]}*"
+            # f"Location📍: *{league_info[5]}*\n"
+            # f"Dates📅: *{league_info[3]}*\n" f"Prize pool💰: *{league_info[4]}$*\n"
+            # f'Link🔗: {f"[{link[0]}]({link[1]})" if league_info[7] else None}\n'
+            # if reply_games_kb
+            # else f"*No found games for:\n{league_info[0]}*"
         ),
         reply_markup=markup if reply_games_kb else None,
         parse_mode=ParseMode.MARKDOWN,
@@ -119,15 +119,6 @@ def view_game_info(update, context):
         reply_markup=subscribe_kb_markup,
         parse_mode=ParseMode.MARKDOWN,
     )
-
-
-def leagues_search(query):
-    leagues_list = get_current_leagues()
-    result = []
-    for league in leagues_list:
-        if query in league[0]:
-            result.append(league)
-    return result
 
 
 def inlinequery(update, context):

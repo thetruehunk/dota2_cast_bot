@@ -20,6 +20,15 @@ mapper(Game, games_table)
 mapper(League, leagues_table)
 
 
+def leagues_search(query):
+    leagues_list = get_current_leagues()
+    result = []
+    for league in leagues_list:
+        if query in league[0]:
+            result.append(league)
+    return result
+
+
 def get_current_leagues():
     Session = sessionmaker(bind=engine)
     session = Session()
@@ -40,12 +49,10 @@ def get_league_info(league):
         session.query(
             League.name,
             League.tier,
-            League.baner_url,
+            # League.baner_url,
             League.dates,
             League.prize_pool,
             League.host_location,
-            League.event_location,
-            League.links,
         )
         .filter(League.name == text(league))
         .all()[0]
@@ -109,11 +116,12 @@ def get_games_current_league(league):
     Session = sessionmaker(bind=engine)
     session = Session()
     games = []
-    short_name = (
-        session.query(League.short_name).filter(League.name == text(league)).scalar()
-    )
+    #short_name = (
+    #    session.query(League.short_name).filter(League.name == text(league)).scalar()
+    #)
     for game in session.query(Game).filter(
-        Game.league_name == short_name, Game.start_time >= datetime.now()
+    #    Game.league_name == short_name, Game.start_time >= datetime.now()
+        Game.league_name == text(league), Game.start_time >= datetime.now()
     ):
         games.append(
             (
@@ -147,6 +155,7 @@ def get_game_info(game_id):
     session.commit()
     return  responce
 
+
 def add_leagues_to_database(leagues_by_tier):
     Session = sessionmaker(bind=engine)
     session = Session()
@@ -161,19 +170,18 @@ def add_leagues_to_database(leagues_by_tier):
                         (get_league_id(league["name"].strip())),
                         league["tier"],
                         league["name"].strip(),
-                        league["short_name"],
-                        league["baner_url"],
+                        # league["short_name"],
+                        # league["baner_url"],
                         league["icon"],
                         league["dates"],
                         league["prize_pool"],
                         league["teams"],
                         league["host_location"],
-                        league["event_location"],
-                        str(league["links"]) if league["links"] else None,
+                        # TODO winner': 'TBD', 'runner_up': 'TBD'}
                     )
                     session.add(new_league)
-                except KeyError:
-                    logging.warning("Can't create object for league")
+                except KeyError as error:
+                    logging.warning(f"Can't create object for league {error}")
             session.commit()
 
 
