@@ -52,10 +52,10 @@ def main():
     # creating handlers
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("help", help_me))
-    dp.add_handler(MessageHandler(Filters.regex("OK, search informations about(.*)"), view_league_info))
-    dp.add_handler(CallbackQueryHandler(view_game_info, pattern='^view_game_info \d+$'))
-    dp.add_handler(CallbackQueryHandler(subs_video, pattern='^subs_video \d+$'))
-    dp.add_handler(CallbackQueryHandler(subs_text, pattern='^subs_text \d+$'))
+    dp.add_handler(MessageHandler(Filters.regex("OK, search informations about(.*)"),view_league_info))
+    dp.add_handler(CallbackQueryHandler(view_game_info, pattern="^view_game_info \d+$"))
+    dp.add_handler(CallbackQueryHandler(subs_video, pattern="^subs_video \d+$"))
+    dp.add_handler(CallbackQueryHandler(subs_text, pattern="^subs_text \d+$"))
     dp.add_handler(InlineQueryHandler(inlinequery))
     # dp.add_handler(CommandHandler("alarm", set_alarm, pass_args=True, pass_job_queue=True))
     # run bot
