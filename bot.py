@@ -13,7 +13,7 @@ from telegram.ext import (
 )
 from telegram.ext import messagequeue as mq
 
-from functions import sync_current_leagues, sync_game_current_league
+from functions import sync_current_leagues, sync_game_current_league, get_league_baner
 from handlers import (
     get_game_info,
     get_game_start_twitch,
@@ -45,6 +45,8 @@ def main():
     # creating job for regular sync database
     bot.job_queue.run_repeating(callback=sync_current_leagues, interval=3600, first=10)
     bot.job_queue.run_repeating(callback=sync_game_current_league, interval=3600, first=10)
+    bot.job_queue.run_repeating(callback=get_league_baner, interval=3600, first=40)
+    # TODO get_baner
 
     # creating write in log about start bot
     logging.info("Bot is run")

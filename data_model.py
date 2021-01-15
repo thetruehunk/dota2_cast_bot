@@ -1,119 +1,79 @@
-""" Здесь лежат описания таблиц и классы для взаимодействия ними"""
-
+# This is model for save data
+# leagues, games, other informations
+# about matchup and users
 
 import os
-from datetime import datetime
-from sqlalchemy import create_engine
-from sqlalchemy import Table, Column, Integer, String, Binary, DateTime, MetaData
+from sqlalchemy import (
+    create_engine,
+    Table,
+    Column,
+    Integer,
+    String,
+    Binary,
+    DateTime,
+    MetaData,
+)
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy_utils import generic_repr
+import typing
 
-
-# получаем путь к текущему каталогу
 basedir = os.path.abspath(os.path.dirname(__file__))
-# подключаемся к БД
-engine = create_engine("sqlite:///" + os.path.join(basedir, "dota.db3"), echo=False,)
-
-metadata = MetaData()
-# описываем структуру БД
-leagues_table = Table(
-    "leagues",
-    metadata,
-    Column("id", Integer, primary_key=True),  # sqlite_autoincrement=True
-    Column("league_id", Integer),
-    Column("tier", String),
-    Column("name", String),
-    # Column("short_name", String),
-    # Column("baner_url", String),
-    Column("icon_url", String),
-    Column("dates", String),  # timezone=False
-    Column("prize_pool", Integer),
-    Column("teams", Integer),
-    Column("host_location", String),
+engine = create_engine(
+    "sqlite:///" + os.path.join(basedir, "dota.db3"),
+    echo=False,
 )
-games_table = Table(
-    "games",
-    metadata,
-    Column("game_id", Integer, primary_key=True),
-    Column("league_id", Integer),  # ForeignKey('leagues_table.league_id')
-    Column("league_name", String),
-    Column("team1", String),
-    Column("team2", String),
-    Column("game_format", String),
-    Column("start_time", DateTime),
-    Column("twitch_channel", String),
-)
-teams_table = Table(
-    "teams",
-    metadata,
-    Column("team_id", Integer, primary_key=True),
-    Column("team_name", String),
-    Column("team_logo", String),
-)
-users_table = Table("users", metadata, Column("id", Integer, primary_key=True), Column("user_id", Integer), Column("game_id", Integer))
-
-# создаем обьекты для взаимодействия с БД
-class League(object):
-    def __init__(
-        self,
-        league_id,
-        tier,
-        name,
-        #short_name,
-        #baner_url,
-        icon_url,
-        dates,
-        prize_pool,
-        teams,
-        host_location,
-    ):
-        self.league_id = league_id
-        self.tier = tier
-        self.name = name
-        #self.short_name = short_name
-        #self.baner_url = baner_url
-        self.icon_url = icon_url
-        self.dates = dates
-        self.prize_pool = prize_pool
-        self.teams = teams
-        self.host_location = host_location
+Base = declarative_base()
 
 
-class Game(object):
-    def __init__(
-        self,
-        game_id,
-        league_id,
-        league_name,
-        team1,
-        team2,
-        game_format,
-        start_time,
-        twitch_channel,
-    ):
-        self.game_id = game_id
-        self.league_id = league_id
-        self.league_name = league_name
-        self.team1 = team1
-        self.team2 = team2
-        self.game_format = game_format
-        self.start_time = start_time
-        self.twitch_channel = twitch_channel
+@generic_repr
+class League(Base):
+    __tablename__ = "league"
+
+    id = Column(Integer, primary_key=True)
+    league_id = Column(Integer)
+    tier = Column(String)
+    name = Column(String)
+    icon_url = Column(String)
+    page_url = Column(String)
+    baner_url = Column(String)
+    dates = Column(String)
+    prize_pool = Column(Integer)
+    teams = Column(Integer)
+    host_location = Column(String)
 
 
-class Team(object):
-    def __init__(
-        self, team_id, team_name, team_logo,
-    ):
-        self.team_id = team_id
-        self.team_name = team_name
-        self.team_logo = team_logo
+@generic_repr
+class Game(Base):
+    __tablename__ = "game"
+
+    game_id = Column(Integer, primary_key=True)
+    league_id = Column(Integer)
+    league_name = Column(String)
+    league_short_name = Column(String)
+    team1 = Column(String)
+    team2 = Column(String)
+    game_format = Column(String)
+    start_time = Column(DateTime)
+    twitch_channel = Column(String)
 
 
-class User(object):
-    def __init__(self, user_id, game_id):
-        self.user_id = user_id
-        self.game_id = game_id
+@generic_repr
+class Team(Base):
+    __tablename__ = "team"
+
+    team_id = Column(Integer, primary_key=True)
+    team_name = Column(String)
+    team_logo = Column(String)
 
 
-# Если БД новая - создаем стуктуру
-if not engine.dialect.has_table(engine, "leagues"):
-    metadata.create_all(engine)
+@generic_repr
+class User(Base):
+    __tablename__ = "user"
+
+    user_id = Column(Integer, primary_key=True)
+    geme_id = Column(Integer)
+
+
+# If db is new - create struct
+if not engine.dialect.has_table(engine, "league"):
+    Base.metadata.create_all(engine)

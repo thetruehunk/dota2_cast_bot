@@ -22,9 +22,6 @@ from data_model import (
     League,
     User,
     engine,
-    games_table,
-    leagues_table,
-    users_table,
 )
 from functions import (
     leagues_search,
@@ -36,9 +33,6 @@ from functions import (
 from keyboards import start_kb_markup
 from sqlalchemy.orm import mapper, sessionmaker
 from sqlalchemy.sql import text
-
-""" Mapper """
-mapper(User, users_table)
 
 
 def start(update, context):
@@ -81,14 +75,20 @@ def view_league_info(update, context):
         chat_id=update.message.chat_id,
         photo=league_info[2],
         caption=(
-            # f"*{league_info[0]}*\n" 
-            # f"Tier: *{league_info[1]}*\n"
+            f"*{league_info[0]}*\n" f"Tier: *{league_info[1]}*\n"
             # f'Organizer: *{"Twitch account"}*\n'
-            # f"Location📍: *{league_info[5]}*\n"
-            # f"Dates📅: *{league_info[3]}*\n" f"Prize pool💰: *{league_info[4]}$*\n"
-            # f'Link🔗: {f"[{link[0]}]({link[1]})" if league_info[7] else None}\n'
-            # if reply_games_kb
-            # else f"*No found games for:\n{league_info[0]}*"
+            f"Location 📍: *{league_info[6]}*\n"
+            f"Dates 📅: *{league_info[4]}*\n"
+            f"Prize pool 💰: *{league_info[5]}$*\n"
+            # f'Link🔗: {f"[{link[0]}]({link[1]})" if league_info[2] else None}\n'
+            if reply_games_kb
+            else f"*{league_info[0]}*\n" f"Tier: *{league_info[1]}*\n"
+            # f'Organizer: *{"Twitch account"}*\n'
+            f"Location 📍: *{league_info[6]}*\n"
+            f"Dates 📅: *{league_info[4]}*\n"
+            f"Prize pool 💰: *{league_info[5]}$*\n"
+            # f'Link🔗: {f"[{link[0]}]({link[1]})" if league_info[2] else None}\n'
+            f"*No found games*"
         ),
         reply_markup=markup if reply_games_kb else None,
         parse_mode=ParseMode.MARKDOWN,
@@ -97,7 +97,6 @@ def view_league_info(update, context):
 
 def view_game_info(update, context):
     game_id = update.callback_query.data.split(" ")[1]
-    print(game_id)
     game_info = get_game_info(game_id)
     reply_subscribe_kb = [
         [InlineKeyboardButton(f"text stream", callback_data=f"subs_text {game_id}")],
@@ -131,7 +130,7 @@ def inlinequery(update, context):
                 InlineQueryResultArticle(
                     id=uuid4(),
                     title=item[0].strip(),
-                    description=f"Period: {item[3]}, prize: ${item[2]}",
+                    description=f"Period: {item[4]}, prize: ${item[3]}",
                     thumb_url=item[1],
                     input_message_content=InputTextMessageContent(
                         f'OK, search informations about "{item[0].strip()}"'

@@ -6,18 +6,16 @@ import json
 import logging
 import urllib.parse
 from datetime import datetime
+import time
 
 import pyjson5
 import requests
 from bs4 import BeautifulSoup
 from liquipediapy import dota
 
-from data_model import Game, League, engine, games_table, leagues_table
+from data_model import Game, League, engine
 from sqlalchemy.orm import mapper, sessionmaker
 from sqlalchemy.sql import exists, text
-
-mapper(Game, games_table)
-mapper(League, leagues_table)
 
 
 def leagues_search(query):
@@ -36,7 +34,13 @@ def get_current_leagues():
     for league in session.query(League):
         if check_end_league(league.dates):
             leagues.append(
-                (league.name, league.icon_url, league.prize_pool, league.dates)
+                (
+                    league.name,
+                    league.icon_url,
+                    league.page_url,
+                    league.prize_pool,
+                    league.dates,
+                )
             )
     session.commit()
     return leagues
@@ -45,20 +49,21 @@ def get_current_leagues():
 def get_league_info(league):
     Session = sessionmaker(bind=engine)
     session = Session()
-    responce = (
+    response = (
         session.query(
             League.name,
             League.tier,
-            # League.baner_url,
+            League.baner_url,
+            League.page_url,
             League.dates,
             League.prize_pool,
             League.host_location,
         )
         .filter(League.name == text(league))
-        .all()[0]
+        .first()
     )
     session.commit()
-    return responce
+    return response
 
 
 def get_league_id(league):
@@ -75,6 +80,27 @@ def get_league_id(league):
     except KeyError:
         logging.info(f"Отсутствуют данные по: {league}")
         return None
+
+
+def get_league_baner(context):
+    dota_liquipedi = dota("appname")
+    leagues = get_current_leagues()
+    try:
+        for league in leagues:
+            Session = sessionmaker(bind=engine)
+            session = Session()
+            row = session.query(League).filter(League.name == league[0]).first()
+            if row.baner_url == None:
+                logging.info(f"Search baner for '{league[0]}'")
+                baner_url = dota_liquipedi.get_tournament_baner(league[2])
+                row.baner_url = baner_url
+            session.commit()
+            time.sleep(30)
+
+    except KeyError as err:
+        logging.info(err)
+    except json.decoder.JSONDecodeError:
+        logging.info('api request is block, try "https://liquipedia.net"')
 
 
 def check_end_league(period):
@@ -116,12 +142,9 @@ def get_games_current_league(league):
     Session = sessionmaker(bind=engine)
     session = Session()
     games = []
-    #short_name = (
-    #    session.query(League.short_name).filter(League.name == text(league)).scalar()
-    #)
     for game in session.query(Game).filter(
-    #    Game.league_name == short_name, Game.start_time >= datetime.now()
-        Game.league_name == text(league), Game.start_time >= datetime.now()
+        Game.league_name == text(league),
+        Game.start_time >= datetime.now(),
     ):
         games.append(
             (
@@ -153,7 +176,7 @@ def get_game_info(game_id):
         .all()[0]
     )
     session.commit()
-    return  responce
+    return responce
 
 
 def add_leagues_to_database(leagues_by_tier):
@@ -164,19 +187,18 @@ def add_leagues_to_database(leagues_by_tier):
             logging.info("Такой турнир уже существует")
         else:
             if check_end_league(league["dates"]):
-                print(league)
                 try:
                     new_league = League(
-                        (get_league_id(league["name"].strip())),
-                        league["tier"],
-                        league["name"].strip(),
-                        # league["short_name"],
-                        # league["baner_url"],
-                        league["icon"],
-                        league["dates"],
-                        league["prize_pool"],
-                        league["teams"],
-                        league["host_location"],
+                        league_id=(get_league_id(league["name"].strip())),
+                        tier=league["tier"],
+                        name=league["name"].strip(),
+                        icon_url=league["icon"],
+                        page_url=league["page"],
+                        baner_url=None,
+                        dates=league["dates"],
+                        prize_pool=league["prize_pool"],
+                        teams=league["teams"],
+                        host_location=league["host_location"],
                         # TODO winner': 'TBD', 'runner_up': 'TBD'}
                     )
                     session.add(new_league)
@@ -214,14 +236,17 @@ def sync_game_current_league(context):
             logging.info("Такая игра существует")
         else:
             new_game = Game(
-                None,
-                get_league_id(game["tournament"]),
-                game["tournament"],
-                game["team1"],
-                game["team2"],
-                game["format"],
-                datetime.strptime(game["start_time"][0:-4], "%B %d, %Y - %H:%M"),
-                game["twitch_channel"],
+                game_id=None,
+                league_id=get_league_id(game["tournament"]),
+                league_name=game["tournament"],
+                league_short_name=game["tournament_short_name"],
+                team1=game["team1"],
+                team2=game["team2"],
+                game_format=game["format"],
+                start_time=datetime.strptime(
+                    game["start_time"][0:-4], "%B %d, %Y - %H:%M"
+                ),
+                twitch_channel=game["twitch_channel"],
             )
             session.add(new_game)
         session.commit()
