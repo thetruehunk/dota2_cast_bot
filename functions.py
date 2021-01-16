@@ -9,6 +9,8 @@ from datetime import datetime
 import time
 
 import pyjson5
+from PIL import Image, ImageFilter
+from io import BytesIO
 import requests
 from bs4 import BeautifulSoup
 from liquipediapy import dota
@@ -82,27 +84,6 @@ def get_league_id(league):
         return None
 
 
-def get_league_baner(context):
-    dota_liquipedi = dota("appname")
-    leagues = get_current_leagues()
-    try:
-        for league in leagues:
-            Session = sessionmaker(bind=engine)
-            session = Session()
-            row = session.query(League).filter(League.name == league[0]).first()
-            if row.baner_url == None:
-                logging.info(f"Search baner for '{league[0]}'")
-                baner_url = dota_liquipedi.get_tournament_baner(league[2])
-                row.baner_url = baner_url
-            session.commit()
-            time.sleep(30)
-
-    except KeyError as err:
-        logging.info(err)
-    except json.decoder.JSONDecodeError:
-        logging.info('api request is block, try "https://liquipedia.net"')
-
-
 def check_end_league(period):
     now = datetime.now()
     try:
@@ -145,7 +126,7 @@ def get_games_current_league(league):
     for game in session.query(Game).filter(
         Game.league_name == text(league),
         Game.start_time >= datetime.now(),
-    ):
+    ).order_by(Game.start_time):
         games.append(
             (
                 game.league_name,
@@ -250,3 +231,37 @@ def sync_game_current_league(context):
             )
             session.add(new_game)
         session.commit()
+
+
+def sync_league_baner(context):
+    dota_liquipedi = dota("appname")
+    leagues = get_current_leagues()
+    try:
+        for league in leagues:
+            Session = sessionmaker(bind=engine)
+            session = Session()
+            row = session.query(League).filter(League.name == league[0]).first()
+            if row.baner_url == None:
+                logging.info(f"Search baner for '{league[0]}'")
+                baner_url = dota_liquipedi.get_tournament_baner(league[2])
+                row.baner_url = baner_url
+            session.commit()
+            time.sleep(30)
+
+    except KeyError as err:
+        logging.info(err)
+    except json.decoder.JSONDecodeError:
+        logging.info('api request is block, try "https://liquipedia.net"')
+
+
+def make_game_baner(baner_url, team1, team2):
+    raw_background = requests.get(baner_url, stream=True).raw
+    background = Image.open(raw_background)
+    blured_background = background.filter(ImageFilter.GaussianBlur(10))
+    bufer = BytesIO()
+    blured_background.save(bufer, format = 'png')
+    # TODO add teams logo
+    bufer.seek(0)
+
+    return bufer
+
