@@ -6,7 +6,7 @@ chardet==4.0.0
 cryptography==3.3.1
 decorator==4.4.2
 idna==2.10
-git+https://github.com/thetruehunk/liquipediapy#egg=liquipediapy
+liquipediapy==2.1.0
 lxml==4.6.2
 pycparser==2.20
 pyjson5==1.4.7
