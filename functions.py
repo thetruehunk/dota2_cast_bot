@@ -145,7 +145,7 @@ def get_games_current_league(league):
     for game in session.query(Game).filter(
         Game.league_name == text(league),
         Game.start_time >= datetime.now(),
-    ):
+    ).order_by(Game.start_time):
         games.append(
             (
                 game.league_name,
