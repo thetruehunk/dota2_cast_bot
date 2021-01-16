@@ -29,6 +29,7 @@ from functions import (
     get_games_current_league,
     get_league_info,
     get_game_info,
+    make_game_baner,
 )
 from keyboards import start_kb_markup
 from sqlalchemy.orm import mapper, sessionmaker
@@ -56,6 +57,7 @@ def help_me(update, context):
 
 def view_league_info(update, context):
     league_name = update.message.text.split("about ")[1]
+    league_info = get_league_info(league_name)
     reply_games_kb = []
     games = get_games_current_league(league_name)
     for game in games:
@@ -63,14 +65,14 @@ def view_league_info(update, context):
             [
                 InlineKeyboardButton(
                     f'🔹{game[1]} ⚔️ 🔹{game[2]}  🕔{game[4].strftime("%b-%d %H:%M")}',
-                    callback_data=f"view_game_info {game[5]}",
+                    callback_data=f'view_game_info {game[5]}',
                     parse_mode=ParseMode.MARKDOWN,
                 )
             ]
         )
     markup = InlineKeyboardMarkup(reply_games_kb)
-    league_info = get_league_info(league_name)
     # link = league_info[7].split(",")[0].strip("[}{'").split("': '")
+    context.chat_data['baner_url'] = league_info[2]
     context.bot.send_photo(
         chat_id=update.message.chat_id,
         photo=league_info[2],
@@ -98,6 +100,8 @@ def view_league_info(update, context):
 def view_game_info(update, context):
     game_id = update.callback_query.data.split(" ")[1]
     game_info = get_game_info(game_id)
+    baner_url = context.chat_data['baner_url']
+    baner = make_game_baner(baner_url, game_info[1], game_info[2]) 
     reply_subscribe_kb = [
         [InlineKeyboardButton(f"text stream", callback_data=f"subs_text {game_id}")],
         [InlineKeyboardButton(f"video stream", callback_data=f"subs_video {game_id}")],
@@ -106,7 +110,7 @@ def view_game_info(update, context):
     subscribe_kb_markup = InlineKeyboardMarkup(reply_subscribe_kb)
     context.bot.send_photo(
         chat_id=update.callback_query.message.chat_id,
-        photo=open("VS.png", "rb"),
+        photo=baner,
         caption=(
             f"League🏆: *{game_info[0]}*\n"
             f"Start time🕑: *{game_info[4]}*\n"
