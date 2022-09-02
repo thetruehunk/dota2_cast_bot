@@ -1,0 +1,7 @@
+TOKEN = ""
+
+""" API links """
+STEAM_LEAGES = "https://api.steampowered.com/IDOTA2Match_205790/GetLeagueListing/v1/?key="
+
+OPEN_DOTA_LEAGES = "https://api.opendota.com/api/leagues"
+

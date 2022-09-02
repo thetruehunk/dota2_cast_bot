@@ -9,13 +9,11 @@ from datetime import datetime
 import time
 
 import pyjson5
-from PIL import Image, ImageFilter
-from io import BytesIO
 import requests
 from bs4 import BeautifulSoup
 from liquipediapy import dota
 
-from data_model import Game, League, engine
+from data_model import Game, League, Team, engine
 from sqlalchemy.orm import mapper, sessionmaker
 from sqlalchemy.sql import exists, text
 
@@ -112,11 +110,13 @@ def check_end_league(period):
             return True
         else:
             return False
+    except Exception as error:
+        print(error)
 
-    except IndexError:
-        logging.exception("не хватает данных")
-    except ValueError:
-        logging.exception("это неправильный формат периода")
+    #except IndexError:
+    #    logging.exception("не хватает данных")
+    #except ValueError:
+    #    logging.exception("это неправильный формат периода")
 
 
 def get_games_current_league(league):
@@ -144,7 +144,7 @@ def get_games_current_league(league):
 def get_game_info(game_id):
     Session = sessionmaker(bind=engine)
     session = Session()
-    responce = (
+    response = (
         session.query(
             Game.league_name,
             Game.team1,
@@ -157,7 +157,28 @@ def get_game_info(game_id):
         .all()[0]
     )
     session.commit()
-    return responce
+    return response
+
+
+def get_team_info(team):
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    response = (
+        session.query(
+            Team.team_id,
+            Team.rating,
+            Team.wins,
+            Team.losses,
+            Team.last_match_time,
+            Team.name,
+            Team.tag,
+            Team.logo_url,
+        )
+        .filter(Team.name == team)
+        .first()
+    )
+    session.commit()
+    return response
 
 
 def add_leagues_to_database(leagues_by_tier):
@@ -197,6 +218,32 @@ def sync_current_leagues(context):
     except AttributeError:
         logging.warning("Not found data in API")
 
+
+def sync_teams(context):
+    try:
+        teams = requests.get("https://api.opendota.com/api/teams").json()
+        Session = sessionmaker(bind=engine)
+        session = Session()
+        for team in teams:
+            # вероятно сдесь нужно сделать орезку пробелов слева и справа
+            if (session.query(Team).filter(Team.team_id == team["team_id"]).scalar()):
+                logging.info("Такая команда существует")
+            else:
+                new_team = Team(
+                    team_id = team["team_id"],
+                    rating = team["rating"],
+                    wins = team["wins"],
+                    losses = team["losses"],
+                    last_match_time = team["last_match_time"],
+                    name = team["name"],
+                    tag = team["tag"],
+                    logo_url = team["logo_url"],
+                )
+                session.add(new_team) 
+                logging.info(f'Добавлена команда {team["name"]}')
+                session.commit()
+    except KeyError as err:
+        logging.info(err)
 
 def sync_game_current_league(context):
     dota_liquipedi = dota("appname")
@@ -252,16 +299,4 @@ def sync_league_baner(context):
         logging.info(err)
     except json.decoder.JSONDecodeError:
         logging.info('api request is block, try "https://liquipedia.net"')
-
-
-def make_game_baner(baner_url, team1, team2):
-    raw_background = requests.get(baner_url, stream=True).raw
-    background = Image.open(raw_background)
-    blured_background = background.filter(ImageFilter.GaussianBlur(10))
-    bufer = BytesIO()
-    blured_background.save(bufer, format = 'png')
-    # TODO add teams logo
-    bufer.seek(0)
-
-    return bufer
 
