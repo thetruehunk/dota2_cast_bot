@@ -13,7 +13,7 @@ from telegram.ext import (
 )
 from telegram.ext import messagequeue as mq
 
-from functions import sync_current_leagues, sync_game_current_league, sync_league_baner
+from functions import sync_current_leagues, sync_game_current_league, sync_league_baner, sync_teams 
 from handlers import (
     get_game_info,
     get_game_start_twitch,
@@ -26,26 +26,27 @@ from handlers import (
     subs_video,
     subs_text,
 )
-from settings import PROXY, TOKEN
+from settings import TOKEN
 
 logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s",
     level=logging.INFO,
-    filename="bot.log",
+    filename="logs/bot.log",
 )
 
 
 def main():
     # creating bot
-    bot = Updater(TOKEN, use_context=True, request_kwargs=PROXY)
+    bot = Updater(TOKEN, use_context=True)
 
     # creating dispatcher
     dp = bot.dispatcher
 
     # creating job for regular sync database
-    bot.job_queue.run_repeating(callback=sync_current_leagues, interval=3600, first=10)
-    bot.job_queue.run_repeating(callback=sync_game_current_league, interval=3600, first=10)
-    bot.job_queue.run_repeating(callback=sync_league_baner, interval=3600, first=40)
+    #bot.job_queue.run_repeating(callback=sync_current_leagues, interval=3600, first=10)
+    #bot.job_queue.run_repeating(callback=sync_game_current_league, interval=3600, first=10)
+    #bot.job_queue.run_repeating(callback=sync_teams, interval=3600, first=10)
+    #bot.job_queue.run_repeating(callback=sync_league_baner, interval=3600, first=40)
     # TODO get_baner
 
     # creating write in log about start bot

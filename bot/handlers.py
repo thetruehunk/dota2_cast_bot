@@ -29,8 +29,9 @@ from functions import (
     get_games_current_league,
     get_league_info,
     get_game_info,
-    make_game_baner,
+    get_team_info,
 )
+from graphics import make_game_banner
 from keyboards import start_kb_markup
 from sqlalchemy.orm import mapper, sessionmaker
 from sqlalchemy.sql import text
@@ -39,6 +40,22 @@ from sqlalchemy.sql import text
 def start(update, context):
     logging.info("Start function called")
     reply_text = "Hello! Choose a league or use the search! 🎉"
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    data = update.message.from_user
+    if not session.query(User).filter(User.id == data['id']).first():
+        new_user = User(
+                id = data['id'],
+                is_bot = data['is_bot'],
+                is_premium = data['is_premium'],
+                username = data['username'],
+                first_name = data['first_name'],
+                last_name = data['last_name'],
+                language_code = data['language_code']
+                )
+        session.add(new_user)
+        session.commit()
+
     update.message.reply_text(reply_text, reply_markup=start_kb_markup)
 
 
@@ -98,30 +115,43 @@ def view_league_info(update, context):
 
 
 def view_game_info(update, context):
-    game_id = update.callback_query.data.split(" ")[1]
-    game_info = get_game_info(game_id)
-    baner_url = context.chat_data['baner_url']
-    baner = make_game_baner(baner_url, game_info[1], game_info[2]) 
-    reply_subscribe_kb = [
-        [InlineKeyboardButton(f"text stream", callback_data=f"subs_text {game_id}")],
-        [InlineKeyboardButton(f"video stream", callback_data=f"subs_video {game_id}")],
-        [InlineKeyboardButton(f"back", switch_inline_query_current_chat="13")],
-    ]
-    subscribe_kb_markup = InlineKeyboardMarkup(reply_subscribe_kb)
-    context.bot.send_photo(
-        chat_id=update.callback_query.message.chat_id,
-        photo=baner,
-        caption=(
-            f"League🏆: *{game_info[0]}*\n"
-            f"Start time🕑: *{game_info[4]}*\n"
-            f"Game format🎲: *{game_info[3]}*\n"
-            f"Bookmaker odds📊: *{get_bet_koef(game_info[1], game_info[2], game_info[4])}*\n"
-            f"Bookmaker link🔗: [Parimatch](https://parimatch.ru)\n"
-            f"#dota2 #parimatch #team1 #team2\n"
-        ),
-        reply_markup=subscribe_kb_markup,
-        parse_mode=ParseMode.MARKDOWN,
-    )
+    try:
+        game_id = update.callback_query.data.split(" ")[1]
+        game_info = get_game_info(game_id)
+        baner_url = context.chat_data['baner_url']
+        #TODO: Заменить отсутсвующие иконки названием команды или инным
+        try:
+            team1_logo = get_team_info(game_info[1])[7]
+        except TypeError:
+            team1_logo = 'https://liquipedia.net/commons/images/thumb/d/d0/DPC_Icon_Grey.png/103px-DPC_Icon_Grey.png'
+        try:
+            team2_logo = get_team_info(game_info[2])[7]
+        except TypeError:
+            team2_logo = 'https://liquipedia.net/commons/images/thumb/d/d0/DPC_Icon_Grey.png/103px-DPC_Icon_Grey.png'
+        baner = make_game_banner(baner_url, team1_logo, team2_logo) 
+        reply_subscribe_kb = [
+            [InlineKeyboardButton(f"text stream", callback_data=f"subs_text {game_id}")],
+            [InlineKeyboardButton(f"video stream", callback_data=f"subs_video {game_id}")],
+            [InlineKeyboardButton(f"back", switch_inline_query_current_chat="13")],
+        ]
+        subscribe_kb_markup = InlineKeyboardMarkup(reply_subscribe_kb)
+        context.bot.send_photo(
+            chat_id=update.callback_query.message.chat_id,
+            photo=baner,
+            caption=(
+                f"League🏆: *{game_info[0]}*\n"
+                f"Start time🕑: *{game_info[4]}*\n"
+                f"Game format🎲: *{game_info[3]}*\n"
+                #f"Bookmaker odds📊: *{get_bet_koef(game_info[1], game_info[2], game_info[4])}*\n"
+                f"Bookmaker link🔗: [Parimatch](https://parimatch.ru)\n"
+                f"#dota2 #parimatch #team1 #team2\n"
+            ),
+            reply_markup=subscribe_kb_markup,
+            parse_mode=ParseMode.MARKDOWN,
+        )
+    except KeyError:
+        text = 'Скорее всего бот был перезапушен, выбери cначала турнир'
+        context.bot.send_message(text=text, chat_id=update.callback_query.message.chat.id)
 
 
 def inlinequery(update, context):
